@@ -96,7 +96,7 @@ export type DocumentCategory =
 
 export type InboxStatus = "neu" | "uebernommen" | "verworfen";
 
-export interface SettingsRow {
+export type SettingsRow = {
   user_id: string;
   equity_percent: number;
   interest_rate: number;
@@ -112,7 +112,7 @@ export interface SettingsRow {
   updated_at: string;
 }
 
-export interface MarketPriceRow {
+export type MarketPriceRow = {
   id: string;
   user_id: string;
   city: string;
@@ -123,7 +123,7 @@ export interface MarketPriceRow {
   updated_at: string;
 }
 
-export interface PropertyRow {
+export type PropertyRow = {
   id: string;
   user_id: string;
   created_at: string;
@@ -173,7 +173,7 @@ export interface PropertyRow {
   ai_analyzed_at: string | null;
 }
 
-export interface ContactRow {
+export type ContactRow = {
   id: string;
   user_id: string;
   property_id: string;
@@ -188,7 +188,7 @@ export interface ContactRow {
   updated_at: string;
 }
 
-export interface ContactEventRow {
+export type ContactEventRow = {
   id: string;
   user_id: string;
   property_id: string;
@@ -202,7 +202,7 @@ export interface ContactEventRow {
   created_at: string;
 }
 
-export interface TaskRow {
+export type TaskRow = {
   id: string;
   user_id: string;
   property_id: string | null;
@@ -217,7 +217,7 @@ export interface TaskRow {
   updated_at: string;
 }
 
-export interface ViewingRow {
+export type ViewingRow = {
   id: string;
   user_id: string;
   property_id: string;
@@ -232,7 +232,7 @@ export interface ViewingRow {
   updated_at: string;
 }
 
-export interface DocumentRow {
+export type DocumentRow = {
   id: string;
   user_id: string;
   property_id: string;
@@ -246,7 +246,7 @@ export interface DocumentRow {
   uploaded_at: string;
 }
 
-export interface ImportInboxRow {
+export type ImportInboxRow = {
   id: string;
   user_id: string;
   source: string;
@@ -287,7 +287,7 @@ type Table<Row, Insert> = {
   Relationships: [];
 };
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       settings: Table<SettingsRow, SettingsInsert>;

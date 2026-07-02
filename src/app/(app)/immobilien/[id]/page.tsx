@@ -1,10 +1,10 @@
-import { ComingSoon, PageHeader } from "@/components/layout/page-header";
+import { PropertyDetail } from "@/components/properties/detail/property-detail";
 
-export default function ImmobilienDetailPage() {
-  return (
-    <>
-      <PageHeader title="Immobiliendetail" />
-      <ComingSoon milestone="M3" />
-    </>
-  );
+export default async function ImmobilienDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <PropertyDetail id={id} />;
 }

@@ -25,7 +25,11 @@ import { cn } from "@/lib/utils";
 import type { PropertyStatus } from "@/types/database";
 import { TabUebersicht } from "./tab-uebersicht";
 import { TabFinanzen } from "./tab-finanzen";
+import { TabKontakt } from "./tab-kontakt";
+import { TabAufgaben } from "./tab-aufgaben";
+import { TabBesichtigungen } from "./tab-besichtigungen";
 import { TabNotizen } from "./tab-notizen";
+import { TabEntscheidung } from "./tab-entscheidung";
 
 export function PropertyDetail({ id }: { id: string }) {
   const { data: property, isLoading, isError } = useProperty(id);
@@ -145,19 +149,37 @@ export function PropertyDetail({ id }: { id: string }) {
       </div>
 
       <Tabs defaultValue="uebersicht">
-        <TabsList>
-          <TabsTrigger value="uebersicht">Übersicht</TabsTrigger>
-          <TabsTrigger value="finanzen">Finanzen</TabsTrigger>
-          <TabsTrigger value="notizen">Notizen</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="uebersicht">Übersicht</TabsTrigger>
+            <TabsTrigger value="finanzen">Finanzen</TabsTrigger>
+            <TabsTrigger value="kontakt">Kontakt & Verlauf</TabsTrigger>
+            <TabsTrigger value="aufgaben">Aufgaben</TabsTrigger>
+            <TabsTrigger value="besichtigungen">Besichtigungen</TabsTrigger>
+            <TabsTrigger value="notizen">Notizen</TabsTrigger>
+            <TabsTrigger value="entscheidung">Entscheidung</TabsTrigger>
+          </TabsList>
+        </div>
         <TabsContent value="uebersicht" className="mt-4">
           <TabUebersicht enriched={enriched} />
         </TabsContent>
         <TabsContent value="finanzen" className="mt-4">
           <TabFinanzen enriched={enriched} settings={settings} />
         </TabsContent>
+        <TabsContent value="kontakt" className="mt-4">
+          <TabKontakt property={p} />
+        </TabsContent>
+        <TabsContent value="aufgaben" className="mt-4">
+          <TabAufgaben property={p} />
+        </TabsContent>
+        <TabsContent value="besichtigungen" className="mt-4">
+          <TabBesichtigungen property={p} />
+        </TabsContent>
         <TabsContent value="notizen" className="mt-4">
           <TabNotizen property={p} />
+        </TabsContent>
+        <TabsContent value="entscheidung" className="mt-4">
+          <TabEntscheidung property={p} />
         </TabsContent>
       </Tabs>
 

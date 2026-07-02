@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "ImmoFinder — Inserat übernehmen",
+  "version": "1.0.0",
+  "description": "Übernimmt das geöffnete Immobilien-Inserat mit einem Klick in deine ImmoFinder-App.",
+  "permissions": ["storage"],
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://www.immobilienscout24.de/expose/*"],
+      "js": ["shared.js", "sites/is24.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.kleinanzeigen.de/s-anzeige/*"],
+      "js": ["shared.js", "sites/kleinanzeigen.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.immowelt.de/expose/*", "https://www.immowelt.de/projekte/expose/*"],
+      "js": ["shared.js", "sites/immowelt.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.immonet.de/angebot/*", "https://www.immonet.de/expose/*"],
+      "js": ["shared.js", "sites/immonet.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

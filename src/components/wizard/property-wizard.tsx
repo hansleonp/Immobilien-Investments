@@ -393,11 +393,11 @@ function applyPrefill(
   const prefill = searchParams.get("prefill");
   if (prefill) {
     try {
+      const base64 = prefill.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
       const decoded = JSON.parse(
         new TextDecoder().decode(
-          Uint8Array.from(atob(prefill.replace(/-/g, "+").replace(/_/g, "/")), (c) =>
-            c.charCodeAt(0)
-          )
+          Uint8Array.from(atob(padded), (c) => c.charCodeAt(0))
         )
       ) as Partial<PropertyFormValues>;
       Object.assign(result, decoded);

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>ImmoFinder — Einstellungen</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 480px; margin: 40px auto; color: #171717; }
+    h1 { font-size: 18px; }
+    label { display: block; font-size: 14px; margin-bottom: 6px; color: #525252; }
+    input { width: 100%; padding: 8px 10px; font-size: 14px; border: 1px solid #d4d4d4; border-radius: 8px; box-sizing: border-box; }
+    button { margin-top: 12px; padding: 8px 16px; background: #15803d; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    button:hover { background: #166534; }
+    #status { margin-left: 10px; font-size: 13px; color: #15803d; }
+    p.hint { font-size: 12px; color: #a3a3a3; }
+  </style>
+</head>
+<body>
+  <h1>🏠 ImmoFinder — Einstellungen</h1>
+  <label for="appUrl">URL deiner ImmoFinder-App</label>
+  <input id="appUrl" type="url" placeholder="http://localhost:3000" />
+  <p class="hint">Lokal: http://localhost:3000 — nach dem Vercel-Deployment die Produktions-URL eintragen (z. B. https://immobilien-investments.vercel.app).</p>
+  <button id="save">Speichern</button><span id="status"></span>
+  <script src="options.js"></script>
+</body>
+</html>

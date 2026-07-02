@@ -11,8 +11,10 @@ import type { Database } from "@/types/database";
  * SUPABASE_SERVICE_ROLE_KEY) fehlen.
  */
 export function createAdminClient(): SupabaseClient<Database> | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  // Robust gegen Kopier-Unfälle: Whitespace/Zeilenumbrüche und versehentlich
+  // mehrfach eingefügte Werte auf den ersten Token reduzieren
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim().split(/\s+/)[0];
   if (!url || !serviceRoleKey) return null;
   return createClient<Database>(url, serviceRoleKey, {
     auth: { persistSession: false },

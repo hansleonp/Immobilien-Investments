@@ -72,6 +72,8 @@ export async function POST(request: Request) {
   }
 
   const links = extractListingLinks(mail.html, mail.text);
+  const debug = new URL(request.url).searchParams.get("debug") === "1";
+  const errors: string[] = [];
   let created = 0;
   let skipped = 0;
 
@@ -122,6 +124,7 @@ export async function POST(request: Request) {
       .select("id");
     if (error) {
       console.error("email-inbound: Insert fehlgeschlagen", error.message);
+      errors.push(`${link.url}: ${error.message}`);
       skipped++;
     } else if (data && data.length > 0) {
       created++;
@@ -130,7 +133,12 @@ export async function POST(request: Request) {
     }
   }
 
-  return Response.json({ accepted: true, created, skipped });
+  // Fehlerdetails nur mit gültigem Secret + explizitem debug=1
+  return Response.json(
+    debug
+      ? { accepted: true, created, skipped, links: links.length, errors }
+      : { accepted: true, created, skipped }
+  );
 }
 
 export function GET() {

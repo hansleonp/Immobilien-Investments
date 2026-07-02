@@ -1,6 +1,8 @@
 // zod-Schemas + JSON-Schemas für die KI-Features (M12).
-// Die zod-Schemas validieren die Tool-Use-Antworten der Claude API;
-// die JSON-Schema-Konstanten werden als input_schema der erzwungenen Tools gesendet.
+// Die zod-Schemas validieren die Structured-Output-Antworten der Mistral API;
+// die JSON-Schema-Konstanten werden als response_format (json_schema, strict)
+// mitgesendet. Mistral-Strict-Modus verlangt: additionalProperties: false und
+// alle Properties in required — optionale Felder sind daher nullable.
 
 import { z } from "zod";
 
@@ -35,7 +37,7 @@ export const exposeExtractionSchema = z.object({
 
 export type ExposeExtraction = z.infer<typeof exposeExtractionSchema>;
 
-/** input_schema für das erzwungene Tool "extract_expose_data" */
+/** JSON-Schema für das response_format "extract_expose_data" (Mistral strict) */
 export const EXPOSE_EXTRACTION_JSON_SCHEMA = {
   type: "object" as const,
   properties: {
@@ -85,7 +87,24 @@ export const EXPOSE_EXTRACTION_JSON_SCHEMA = {
     },
     energy_class: { type: ["string", "null"], description: "Energieeffizienzklasse, z. B. 'C'" },
   },
-  required: [],
+  required: [
+    "title",
+    "street",
+    "zip",
+    "city",
+    "price",
+    "living_area",
+    "rooms",
+    "floor",
+    "construction_year",
+    "condition",
+    "rental_status",
+    "current_rent_cold",
+    "hausgeld",
+    "hausgeld_non_recoverable",
+    "energy_class",
+  ],
+  additionalProperties: false,
 };
 
 // ---------- Objekt-Analyse ----------
@@ -110,7 +129,7 @@ export const propertyAnalysisSchema = z.object({
 
 export type PropertyAnalysis = z.infer<typeof propertyAnalysisSchema>;
 
-/** input_schema für das erzwungene Tool "provide_analysis" */
+/** JSON-Schema für das response_format "provide_analysis" (Mistral strict) */
 export const PROPERTY_ANALYSIS_JSON_SCHEMA = {
   type: "object" as const,
   properties: {
@@ -136,6 +155,7 @@ export const PROPERTY_ANALYSIS_JSON_SCHEMA = {
           },
         },
         required: ["titel", "erlaeuterung", "schweregrad"],
+        additionalProperties: false,
       },
       description: "Risiken mit Schweregrad",
     },
@@ -158,6 +178,7 @@ export const PROPERTY_ANALYSIS_JSON_SCHEMA = {
         },
       },
       required: ["empfohlenes_angebot", "begruendung"],
+      additionalProperties: false,
     },
     anfrage_nachricht: {
       type: "string",
@@ -173,4 +194,5 @@ export const PROPERTY_ANALYSIS_JSON_SCHEMA = {
     "verhandlung",
     "anfrage_nachricht",
   ],
+  additionalProperties: false,
 };

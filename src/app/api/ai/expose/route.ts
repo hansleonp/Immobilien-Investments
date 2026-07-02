@@ -1,8 +1,8 @@
-// POST /api/ai/expose — Exposé-PDF an Claude schicken und strukturierte
-// Objektdaten extrahieren (erzwungenes Tool-Use, zod-validiert).
+// POST /api/ai/expose — Exposé-PDF an Mistral schicken und strukturierte
+// Objektdaten extrahieren (Document Understanding + Structured Output, zod-validiert).
 
-import Anthropic from "@anthropic-ai/sdk";
-import { getAnthropic, isAnthropicConfigured, MODEL } from "@/lib/ai/client";
+import { MistralError } from "@mistralai/mistralai/models/errors";
+import { getMistral, isMistralConfigured, EXTRACTION_MODEL } from "@/lib/ai/client";
 import {
   EXPOSE_EXTRACTION_JSON_SCHEMA,
   exposeExtractionSchema,
@@ -14,20 +14,20 @@ export const maxDuration = 60;
 const MAX_PDF_BYTES = 15 * 1024 * 1024; // 15 MB
 
 const SYSTEM_PROMPT = `Du bist ein präziser deutscher Immobilien-Extraktions-Assistent.
-Du bekommst ein Immobilien-Exposé als PDF und extrahierst daraus strukturierte Objektdaten.
+Du bekommst ein Immobilien-Exposé als PDF und extrahierst daraus strukturierte Objektdaten als JSON.
 
 Regeln:
 - Übernimm NUR Werte, die explizit im Exposé stehen. Keine Schätzungen, keine Ableitungen, keine Annahmen.
-- Fehlende Angaben lässt du weg bzw. setzt sie auf null.
-- Verwechsle die Kaltmiete NICHT mit der Warmmiete: current_rent_cold ist ausschließlich die Nettokaltmiete. Steht nur eine Warmmiete im Exposé, lass current_rent_cold leer.
-- Unterscheide beim Hausgeld sauber zwischen dem GESAMTEN Hausgeld (hausgeld) und dem NICHT umlagefähigen Anteil (hausgeld_non_recoverable). Ist der nicht umlagefähige Anteil nicht explizit ausgewiesen, lass ihn leer.
+- Fehlende Angaben setzt du auf null.
+- Verwechsle die Kaltmiete NICHT mit der Warmmiete: current_rent_cold ist ausschließlich die Nettokaltmiete. Steht nur eine Warmmiete im Exposé, setze current_rent_cold auf null.
+- Unterscheide beim Hausgeld sauber zwischen dem GESAMTEN Hausgeld (hausgeld) und dem NICHT umlagefähigen Anteil (hausgeld_non_recoverable). Ist der nicht umlagefähige Anteil nicht explizit ausgewiesen, setze ihn auf null.
 - Geldbeträge und Flächen als reine Zahlen ohne Einheiten (z. B. 189000, nicht "189.000 €").
-- condition und rental_status nur setzen, wenn das Exposé eine klare Aussage dazu macht — sonst weglassen.`;
+- condition und rental_status nur setzen, wenn das Exposé eine klare Aussage dazu macht — sonst null.`;
 
 export async function POST(request: Request) {
-  if (!isAnthropicConfigured()) {
+  if (!isMistralConfigured()) {
     return Response.json(
-      { error: "ANTHROPIC_API_KEY nicht konfiguriert" },
+      { error: "MISTRAL_API_KEY nicht konfiguriert" },
       { status: 503 }
     );
   }
@@ -64,31 +64,20 @@ export async function POST(request: Request) {
   const base64 = Buffer.from(await file.arrayBuffer()).toString("base64");
 
   try {
-    const anthropic = getAnthropic();
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      system: SYSTEM_PROMPT,
-      tools: [
-        {
-          name: "extract_expose_data",
-          description:
-            "Meldet die aus dem Exposé extrahierten Objektdaten. Nur explizit genannte Werte, alles andere null/weglassen.",
-          input_schema: EXPOSE_EXTRACTION_JSON_SCHEMA,
-        },
-      ],
-      tool_choice: { type: "tool", name: "extract_expose_data" },
+    const mistral = getMistral();
+    const response = await mistral.chat.complete({
+      model: EXTRACTION_MODEL,
+      maxTokens: 2048,
+      temperature: 0,
       messages: [
+        { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
           content: [
             {
-              type: "document",
-              source: {
-                type: "base64",
-                media_type: "application/pdf",
-                data: base64,
-              },
+              type: "document_url",
+              documentUrl: `data:application/pdf;base64,${base64}`,
+              documentName: file.name,
             },
             {
               type: "text",
@@ -97,17 +86,37 @@ export async function POST(request: Request) {
           ],
         },
       ],
+      responseFormat: {
+        type: "json_schema",
+        jsonSchema: {
+          name: "extract_expose_data",
+          description:
+            "Die aus dem Exposé extrahierten Objektdaten. Nur explizit genannte Werte, alles andere null.",
+          schemaDefinition: EXPOSE_EXTRACTION_JSON_SCHEMA,
+          strict: true,
+        },
+      },
     });
 
-    const toolUse = response.content.find((block) => block.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
+    const content = response.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || content.length === 0) {
       return Response.json(
         { error: "KI-Antwort enthielt keine extrahierten Daten" },
         { status: 502 }
       );
     }
 
-    const parsed = exposeExtractionSchema.safeParse(toolUse.input);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(content);
+    } catch {
+      return Response.json(
+        { error: "KI-Antwort war kein gültiges JSON" },
+        { status: 502 }
+      );
+    }
+
+    const parsed = exposeExtractionSchema.safeParse(raw);
     if (!parsed.success) {
       return Response.json(
         { error: "KI-Antwort konnte nicht validiert werden" },
@@ -117,10 +126,10 @@ export async function POST(request: Request) {
 
     return Response.json({ data: parsed.data });
   } catch (err) {
-    if (err instanceof Anthropic.APIError) {
-      console.error("[ai/expose] Claude API error:", err.status, err.message);
+    if (err instanceof MistralError) {
+      console.error("[ai/expose] Mistral API error:", err.statusCode, err.message);
       return Response.json(
-        { error: "Claude-API-Fehler beim Auslesen des Exposés" },
+        { error: "Mistral-API-Fehler beim Auslesen des Exposés" },
         { status: 502 }
       );
     }

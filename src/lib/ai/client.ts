@@ -1,26 +1,29 @@
-// Server-seitiger Anthropic-Client (lazy Singleton).
+// Server-seitiger Mistral-Client (lazy Singleton).
 // Nur in API-Routen / Server-Code importieren — der Key darf nie in den Client-Bundle.
 
-import Anthropic from "@anthropic-ai/sdk";
+import { Mistral } from "@mistralai/mistralai";
 
-/** Aktuelles Sonnet: kosteneffizient, PDF-fähig, Tool-Use. */
-export const MODEL = "claude-sonnet-4-6";
+/** Exposé-Extraktion: klein, preiswert, Document-Understanding-fähig. */
+export const EXTRACTION_MODEL = "mistral-small-latest";
 
-let client: Anthropic | null = null;
+/** Objekt-Analyse: fähiges Allround-Modell für die Investment-Bewertung. */
+export const ANALYSIS_MODEL = "mistral-medium-latest";
 
-export function isAnthropicConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+let client: Mistral | null = null;
+
+export function isMistralConfigured(): boolean {
+  return Boolean(process.env.MISTRAL_API_KEY);
 }
 
-export function getAnthropic(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+export function getMistral(): Mistral {
+  const apiKey = process.env.MISTRAL_API_KEY;
   if (!apiKey) {
     throw new Error(
-      "ANTHROPIC_API_KEY nicht konfiguriert — Key unter console.anthropic.com erstellen und in .env.local bzw. den Vercel-Umgebungsvariablen hinterlegen."
+      "MISTRAL_API_KEY nicht konfiguriert — Key unter console.mistral.ai erstellen und in .env.local bzw. den Vercel-Umgebungsvariablen hinterlegen."
     );
   }
   if (!client) {
-    client = new Anthropic({ apiKey });
+    client = new Mistral({ apiKey });
   }
   return client;
 }

@@ -37,7 +37,10 @@ export async function updateSession(request: NextRequest) {
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
+    // Ziel merken, damit z. B. der Extension-Prefill den Login überlebt
+    const next = request.nextUrl.pathname + request.nextUrl.search;
     url.pathname = "/login";
+    url.search = next !== "/" ? `?next=${encodeURIComponent(next)}` : "";
     return NextResponse.redirect(url);
   }
 

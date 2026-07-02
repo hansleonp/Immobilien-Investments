@@ -96,7 +96,7 @@ export function TabKi({ enriched }: { enriched: EnrichedProperty }) {
             <Sparkles className="size-4 text-green-700" /> KI-Analyse
           </CardTitle>
           <CardDescription>
-            Claude bewertet das Objekt als Kapitalanlage: Stärken, Risiken,
+            Mistral bewertet das Objekt als Kapitalanlage: Stärken, Risiken,
             Miet-Plausibilität, eine Verhandlungsempfehlung auf Basis von
             Break-even- und Max-Kaufpreis sowie ein fertiger Anfrage-Text an den
             Anbieter. Grundlage sind die erfassten Objektdaten, die berechneten
@@ -295,11 +295,11 @@ function SetupHintCard({
     <Card className="border-amber-300 bg-amber-50">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base text-amber-900">
-          <AlertTriangle className="size-4 text-amber-600" /> Anthropic-API-Key
+          <AlertTriangle className="size-4 text-amber-600" /> Mistral-API-Key
           nicht konfiguriert
         </CardTitle>
         <CardDescription className="text-amber-800">
-          Die KI-Analyse benötigt einen Anthropic-API-Key. Einrichtung:
+          Die KI-Analyse benötigt einen Mistral-API-Key. Einrichtung:
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 text-sm text-amber-900">
@@ -307,17 +307,17 @@ function SetupHintCard({
           <li>
             Auf{" "}
             <a
-              href="https://console.anthropic.com"
+              href="https://console.mistral.ai"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium underline"
             >
-              console.anthropic.com
+              console.mistral.ai
             </a>{" "}
             einen API-Key erstellen (Bereich „API Keys“).
           </li>
           <li>
-            Lokal: <code className="rounded bg-amber-100 px-1">ANTHROPIC_API_KEY=…</code>{" "}
+            Lokal: <code className="rounded bg-amber-100 px-1">MISTRAL_API_KEY=…</code>{" "}
             in <code className="rounded bg-amber-100 px-1">.env.local</code> eintragen
             und den Dev-Server neu starten.
           </li>

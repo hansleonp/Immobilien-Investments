@@ -1,12 +1,12 @@
 // POST /api/ai/analyze — KI-Investment-Analyse für ein Objekt.
 // Lädt Objekt + Settings + Marktpreise über den Server-Supabase-Client mit
 // Nutzer-Session (RLS greift), berechnet Kennzahlen serverseitig, holt eine
-// strukturierte Analyse von Claude (erzwungenes Tool-Use) und cached das
-// Ergebnis in properties.ai_analysis / ai_analyzed_at.
+// strukturierte Analyse von Mistral (Structured Output, json_schema strict)
+// und cached das Ergebnis in properties.ai_analysis / ai_analyzed_at.
 
-import Anthropic from "@anthropic-ai/sdk";
+import { MistralError } from "@mistralai/mistralai/models/errors";
 import { z } from "zod";
-import { getAnthropic, isAnthropicConfigured, MODEL } from "@/lib/ai/client";
+import { getMistral, isMistralConfigured, ANALYSIS_MODEL } from "@/lib/ai/client";
 import {
   PROPERTY_ANALYSIS_JSON_SCHEMA,
   propertyAnalysisSchema,
@@ -125,9 +125,9 @@ function buildContext(args: {
 }
 
 export async function POST(request: Request) {
-  if (!isAnthropicConfigured()) {
+  if (!isMistralConfigured()) {
     return Response.json(
-      { error: "ANTHROPIC_API_KEY nicht konfiguriert" },
+      { error: "MISTRAL_API_KEY nicht konfiguriert" },
       { status: 503 }
     );
   }
@@ -187,37 +187,48 @@ export async function POST(request: Request) {
   const context = buildContext({ property, finance, score, assumptions, marketRef });
 
   try {
-    const anthropic = getAnthropic();
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      tools: [
-        {
-          name: "provide_analysis",
-          description:
-            "Liefert die strukturierte Investment-Analyse für das Objekt.",
-          input_schema: PROPERTY_ANALYSIS_JSON_SCHEMA,
-        },
-      ],
-      tool_choice: { type: "tool", name: "provide_analysis" },
+    const mistral = getMistral();
+    const response = await mistral.chat.complete({
+      model: ANALYSIS_MODEL,
+      maxTokens: 4096,
       messages: [
+        { role: "system", content: SYSTEM_PROMPT },
         {
           role: "user",
           content: `Analysiere dieses Immobilienangebot als Kapitalanlage:\n\n${context}`,
         },
       ],
+      responseFormat: {
+        type: "json_schema",
+        jsonSchema: {
+          name: "provide_analysis",
+          description:
+            "Die strukturierte Investment-Analyse für das Objekt.",
+          schemaDefinition: PROPERTY_ANALYSIS_JSON_SCHEMA,
+          strict: true,
+        },
+      },
     });
 
-    const toolUse = response.content.find((block) => block.type === "tool_use");
-    if (!toolUse || toolUse.type !== "tool_use") {
+    const content = response.choices?.[0]?.message?.content;
+    if (typeof content !== "string" || content.length === 0) {
       return Response.json(
         { error: "KI-Antwort enthielt keine Analyse" },
         { status: 502 }
       );
     }
 
-    const parsed = propertyAnalysisSchema.safeParse(toolUse.input);
+    let raw: unknown;
+    try {
+      raw = JSON.parse(content);
+    } catch {
+      return Response.json(
+        { error: "KI-Antwort war kein gültiges JSON" },
+        { status: 502 }
+      );
+    }
+
+    const parsed = propertyAnalysisSchema.safeParse(raw);
     if (!parsed.success) {
       console.error("[ai/analyze] Validierung fehlgeschlagen:", parsed.error.issues);
       return Response.json(
@@ -242,10 +253,10 @@ export async function POST(request: Request) {
 
     return Response.json({ analysis });
   } catch (err) {
-    if (err instanceof Anthropic.APIError) {
-      console.error("[ai/analyze] Claude API error:", err.status, err.message);
+    if (err instanceof MistralError) {
+      console.error("[ai/analyze] Mistral API error:", err.statusCode, err.message);
       return Response.json(
-        { error: "Claude-API-Fehler bei der Analyse" },
+        { error: "Mistral-API-Fehler bei der Analyse" },
         { status: 502 }
       );
     }

@@ -7,7 +7,7 @@
 1. Chrome öffnen → Adresszeile: `chrome://extensions`
 2. Rechts oben **Entwicklermodus** aktivieren
 3. **„Entpackte Erweiterung laden"** → diesen Ordner (`extension/`) auswählen
-4. Fertig. Optional: In den Erweiterungs-Einstellungen (Details → Erweiterungsoptionen) die App-URL anpassen — Standard ist `http://localhost:3000`, nach dem Deployment die Vercel-URL eintragen.
+4. Fertig. Optional: In den Erweiterungs-Einstellungen (Details → Erweiterungsoptionen) die App-URL anpassen — Standard ist `https://immobilien-investments.vercel.app` (die Live-App).
 
 ## Benutzung
 

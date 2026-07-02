@@ -1,7 +1,7 @@
 const input = document.getElementById("appUrl");
 const status = document.getElementById("status");
 
-chrome.storage.sync.get({ appUrl: "http://localhost:3000" }, ({ appUrl }) => {
+chrome.storage.sync.get({ appUrl: "https://immobilien-investments.vercel.app" }, ({ appUrl }) => {
   input.value = appUrl;
 });
 

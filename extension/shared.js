@@ -85,6 +85,14 @@ function ifGenericExtract() {
   };
   if (!data.title) data.title = og("og:title") || document.title || undefined;
   if (!data.image_url) data.image_url = og("og:image") || undefined;
+  if (data.title) {
+    // Portal-Präfixe/Suffixe säubern ("Reserviert • Gelöscht • …", " | kleinanzeigen.de")
+    data.title = data.title
+      .replace(/^(?:(?:Reserviert|Gelöscht|Verkauft|TOP)\s*•\s*)+/i, "")
+      .replace(/\s*\|\s*[^|]+$/, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 
   // 3) Regex über den sichtbaren Text
   const text = document.body ? document.body.innerText.slice(0, 20000) : "";
@@ -101,10 +109,17 @@ function ifGenericExtract() {
     if (m) data.rooms = ifParseGermanNumber(m[1]);
   }
   if (!data.zip || !data.city) {
-    const m = text.match(/\b(\d{5})\s+([A-ZÄÖÜ][a-zäöüß.-]+(?:\s+am\s+\w+)?)/);
-    if (m) {
+    // Zweiteilige Ortsnamen ("Bad Sassendorf") erlauben, Bundesländer ausschließen
+    const m = text.match(
+      /\b(\d{5})\s+([A-ZÄÖÜ][a-zäöüß.-]+(?:\s+[A-ZÄÖÜ][a-zäöüß.-]+|\s+am\s+\w+)?)/
+    );
+    const isState = (s) =>
+      /^(Nordrhein|Rheinland|Baden|Sachsen|Niedersachsen|Bayern|Hessen|Thüringen|Brandenburg|Mecklenburg|Schleswig|Saarland)\b/.test(s);
+    if (m && !isState(m[2])) {
       if (!data.zip) data.zip = m[1];
-      if (!data.city) data.city = m[2];
+      if (!data.city) data.city = m[2].trim();
+    } else if (m && !data.zip) {
+      data.zip = m[1];
     }
   }
 
@@ -157,7 +172,7 @@ function ifInjectButton(siteExtract) {
       const specific = typeof siteExtract === "function" ? siteExtract() || {} : {};
       const data = { ...generic, ...specific };
       const prefill = ifEncodePrefill(data);
-      chrome.storage.sync.get({ appUrl: "http://localhost:3000" }, ({ appUrl }) => {
+      chrome.storage.sync.get({ appUrl: "https://immobilien-investments.vercel.app" }, ({ appUrl }) => {
         const base = appUrl.replace(/\/+$/, "");
         window.open(`${base}/immobilien/neu?prefill=${prefill}`, "_blank");
         button.textContent = "✓ Übernommen";

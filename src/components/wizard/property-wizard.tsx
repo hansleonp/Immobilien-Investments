@@ -811,11 +811,11 @@ function WizardForm({
                     <Alert className="border-amber-300 bg-amber-50">
                       <AlertTriangle className="size-4 text-amber-600" />
                       <AlertTitle>
-                        KI-Auslesen benötigt einen Anthropic-API-Key
+                        KI-Auslesen benötigt einen Mistral-API-Key
                       </AlertTitle>
                       <AlertDescription>
-                        Einrichtung: API-Key auf console.anthropic.com erstellen
-                        und als ANTHROPIC_API_KEY in .env.local (lokal) bzw. in den
+                        Einrichtung: API-Key auf console.mistral.ai erstellen
+                        und als MISTRAL_API_KEY in .env.local (lokal) bzw. in den
                         Vercel-Umgebungsvariablen hinterlegen, dann neu starten.
                       </AlertDescription>
                     </Alert>

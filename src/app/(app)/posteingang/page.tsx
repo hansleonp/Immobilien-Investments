@@ -1,4 +1,5 @@
-import { ComingSoon, PageHeader } from "@/components/layout/page-header";
+import { PageHeader } from "@/components/layout/page-header";
+import { InboxPage } from "@/components/inbox/inbox-page";
 
 export default function PosteingangPage() {
   return (
@@ -7,7 +8,7 @@ export default function PosteingangPage() {
         title="Posteingang"
         description="Neue Inserate aus deinen Suchagenten-E-Mails"
       />
-      <ComingSoon milestone="M11" />
+      <InboxPage />
     </>
   );
 }

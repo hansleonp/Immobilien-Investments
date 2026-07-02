@@ -9,6 +9,7 @@ import { useAllTasks } from "@/lib/queries/tasks";
 import { useAllViewings } from "@/lib/queries/viewings";
 import { DueTodayCard } from "./due-today-card";
 import { GoalProgressCard } from "./goal-progress-card";
+import { InboxBadge } from "./inbox-badge";
 import { KpiCards } from "./kpi-cards";
 import { TopDealsCard } from "./top-deals-card";
 import { UpcomingViewingsCard } from "./upcoming-viewings-card";
@@ -43,6 +44,7 @@ export function DashboardOverview() {
 
   return (
     <div className="space-y-6">
+      <InboxBadge />
       <KpiCards rows={enriched} viewings={viewings} />
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <div className="space-y-6">

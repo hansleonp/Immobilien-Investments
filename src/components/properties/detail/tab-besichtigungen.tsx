@@ -1,8 +1,22 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarPlus, MapPin, Pencil, Star, Trash2, User } from "lucide-react";
+import {
+  CalendarPlus,
+  ChevronDown,
+  ChevronRight,
+  ImagePlus,
+  Loader2,
+  MapPin,
+  Pencil,
+  Star,
+  Trash2,
+  User,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -23,9 +37,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { VIEWING_STATUS_META } from "@/lib/constants";
+import { RatingStars } from "@/components/properties/rating-stars";
+import { VIEWING_CHECKLIST_ITEMS, VIEWING_STATUS_META } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
+import {
+  getDocumentUrl,
+  useDeleteDocument,
+  usePropertyDocuments,
+  useUploadDocument,
+} from "@/lib/queries/documents";
 import { useUpdateProperty } from "@/lib/queries/properties";
 import {
   useCreateViewing,
@@ -34,7 +56,7 @@ import {
 } from "@/lib/queries/viewings";
 import { cn } from "@/lib/utils";
 import type { PropertyWithRelations } from "@/types";
-import type { ViewingRow, ViewingStatus } from "@/types/database";
+import type { DocumentRow, Json, ViewingRow, ViewingStatus } from "@/types/database";
 
 const VIEWING_STATUSES = Object.keys(VIEWING_STATUS_META) as ViewingStatus[];
 const NONE = "__none__";
@@ -220,8 +242,258 @@ function ViewingCard({
         {v.notes && (
           <p className="whitespace-pre-wrap text-sm text-neutral-500">{v.notes}</p>
         )}
+        <ViewingChecklistSection viewing={v} />
       </CardContent>
     </Card>
+  );
+}
+
+/* ---------- Besichtigungs-Checkliste + Fotos ---------- */
+
+type ChecklistEntry = { rating: number | null; note: string };
+
+/** viewings.checklist (Json) defensiv in { key: { rating, note } } normalisieren */
+function parseChecklist(raw: Json): Record<string, ChecklistEntry> {
+  const obj = (
+    raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {}
+  ) as Record<string, { rating?: unknown; note?: unknown } | undefined>;
+  return Object.fromEntries(
+    VIEWING_CHECKLIST_ITEMS.map((item) => {
+      const entry = obj[item.key];
+      return [
+        item.key,
+        {
+          rating: typeof entry?.rating === "number" ? entry.rating : null,
+          note: typeof entry?.note === "string" ? entry.note : "",
+        },
+      ];
+    })
+  );
+}
+
+function countRated(items: Record<string, ChecklistEntry>): number {
+  return VIEWING_CHECKLIST_ITEMS.filter((i) => items[i.key]?.rating != null).length;
+}
+
+function ViewingChecklistSection({ viewing: v }: { viewing: ViewingRow }) {
+  const [open, setOpen] = useState(false);
+  const ratedCount = countRated(parseChecklist(v.checklist));
+
+  return (
+    <div className="border-t pt-2">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-1 text-sm text-neutral-600 hover:text-neutral-900"
+      >
+        {open ? (
+          <ChevronDown className="size-3.5" />
+        ) : (
+          <ChevronRight className="size-3.5" />
+        )}
+        Checkliste {open ? "ausblenden" : "anzeigen"}
+        <span className="ml-1 text-xs text-neutral-400">
+          {ratedCount}/{VIEWING_CHECKLIST_ITEMS.length} bewertet
+        </span>
+      </button>
+      {open && (
+        <div className="mt-3 space-y-5">
+          <ViewingChecklist viewing={v} />
+          <ViewingPhotos viewing={v} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ViewingChecklist({ viewing: v }: { viewing: ViewingRow }) {
+  const updateViewing = useUpdateViewing();
+  const [items, setItems] = useState<Record<string, ChecklistEntry>>(() =>
+    parseChecklist(v.checklist)
+  );
+  const committed = useRef(items);
+
+  function commit(next: Record<string, ChecklistEntry>) {
+    committed.current = next;
+    const checklist: { [key: string]: Json } = {};
+    for (const item of VIEWING_CHECKLIST_ITEMS) {
+      const entry = next[item.key];
+      if (entry.rating != null || entry.note.trim() !== "") {
+        checklist[item.key] = { rating: entry.rating, note: entry.note };
+      }
+    }
+    updateViewing.mutate(
+      { id: v.id, values: { checklist } },
+      { onError: () => toast.error("Checkliste konnte nicht gespeichert werden") }
+    );
+  }
+
+  function handleRating(key: string, rating: number | null) {
+    const next = { ...items, [key]: { ...items[key], rating } };
+    setItems(next);
+    commit(next);
+  }
+
+  function handleNoteBlur() {
+    if (JSON.stringify(items) !== JSON.stringify(committed.current)) {
+      commit(items);
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      {VIEWING_CHECKLIST_ITEMS.map((item) => {
+        const entry = items[item.key];
+        return (
+          <div key={item.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="shrink-0">
+              <RatingStars
+                label={item.label}
+                value={entry.rating}
+                onChange={(r) => handleRating(item.key, r)}
+              />
+            </div>
+            <Input
+              placeholder="Notiz"
+              value={entry.note}
+              onChange={(e) =>
+                setItems((prev) => ({
+                  ...prev,
+                  [item.key]: { ...prev[item.key], note: e.target.value },
+                }))
+              }
+              onBlur={handleNoteBlur}
+              className="h-8 min-w-40 flex-1 text-sm"
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ViewingPhotos({ viewing: v }: { viewing: ViewingRow }) {
+  const { data: documents } = usePropertyDocuments(v.property_id);
+  const upload = useUploadDocument();
+  const deleteDocument = useDeleteDocument();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const photos = (documents ?? []).filter((d) => d.viewing_id === v.id);
+
+  async function handleFiles(fileList: FileList) {
+    setUploading(true);
+    for (const file of Array.from(fileList)) {
+      try {
+        await upload.mutateAsync({
+          propertyId: v.property_id,
+          file,
+          category: "foto",
+          viewingId: v.id,
+        });
+        toast.success(`„${file.name}“ hochgeladen`);
+      } catch (err) {
+        toast.error(
+          err instanceof Error && err.message
+            ? err.message
+            : `„${file.name}“ konnte nicht hochgeladen werden`
+        );
+      }
+    }
+    setUploading(false);
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-neutral-600">
+          Fotos{photos.length > 0 && ` (${photos.length})`}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {uploading ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <ImagePlus className="size-3.5" />
+          )}
+          Foto hinzufügen
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept="image/*,.heic"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files) void handleFiles(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </div>
+      {photos.length === 0 ? (
+        <p className="text-xs text-neutral-400">
+          Noch keine Fotos zu dieser Besichtigung.
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {photos.map((doc) => (
+            <PhotoThumb
+              key={doc.id}
+              doc={doc}
+              onDelete={() =>
+                deleteDocument.mutate(doc, {
+                  onSuccess: () => toast.success("Foto gelöscht"),
+                  onError: () => toast.error("Foto konnte nicht gelöscht werden"),
+                })
+              }
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PhotoThumb({ doc, onDelete }: { doc: DocumentRow; onDelete: () => void }) {
+  const { data: url } = useQuery({
+    queryKey: ["document-url", doc.id],
+    queryFn: () => getDocumentUrl(doc.storage_path),
+    staleTime: 30 * 60 * 1000, // signierte URL ist 1 h gültig
+  });
+
+  return (
+    <div className="group relative">
+      {url ? (
+        <button
+          type="button"
+          title={doc.file_name}
+          onClick={() => window.open(url, "_blank", "noopener,noreferrer")}
+        >
+          <Image
+            src={url}
+            alt={doc.file_name}
+            width={96}
+            height={96}
+            unoptimized
+            className="h-24 w-24 rounded-md border object-cover"
+          />
+        </button>
+      ) : (
+        <Skeleton className="h-24 w-24 rounded-md" />
+      )}
+      <button
+        type="button"
+        aria-label="Foto löschen"
+        onClick={onDelete}
+        className="absolute -top-1.5 -right-1.5 hidden size-5 items-center justify-center rounded-full bg-neutral-800 text-white shadow group-hover:flex"
+      >
+        <X className="size-3" />
+      </button>
+    </div>
   );
 }
 

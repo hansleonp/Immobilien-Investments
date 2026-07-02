@@ -28,6 +28,7 @@ import { TabFinanzen } from "./tab-finanzen";
 import { TabKontakt } from "./tab-kontakt";
 import { TabAufgaben } from "./tab-aufgaben";
 import { TabBesichtigungen } from "./tab-besichtigungen";
+import { TabDokumente } from "./tab-dokumente";
 import { TabNotizen } from "./tab-notizen";
 import { TabEntscheidung } from "./tab-entscheidung";
 
@@ -156,6 +157,14 @@ export function PropertyDetail({ id }: { id: string }) {
             <TabsTrigger value="kontakt">Kontakt & Verlauf</TabsTrigger>
             <TabsTrigger value="aufgaben">Aufgaben</TabsTrigger>
             <TabsTrigger value="besichtigungen">Besichtigungen</TabsTrigger>
+            <TabsTrigger value="dokumente">
+              Dokumente
+              {p.documents.length > 0 && (
+                <span className="ml-1 rounded-full bg-neutral-200 px-1.5 text-xs tabular-nums text-neutral-600">
+                  {p.documents.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="notizen">Notizen</TabsTrigger>
             <TabsTrigger value="entscheidung">Entscheidung</TabsTrigger>
           </TabsList>
@@ -174,6 +183,9 @@ export function PropertyDetail({ id }: { id: string }) {
         </TabsContent>
         <TabsContent value="besichtigungen" className="mt-4">
           <TabBesichtigungen property={p} />
+        </TabsContent>
+        <TabsContent value="dokumente" className="mt-4">
+          <TabDokumente property={p} />
         </TabsContent>
         <TabsContent value="notizen" className="mt-4">
           <TabNotizen property={p} />

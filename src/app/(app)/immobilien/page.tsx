@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
 import { PropertyTable } from "@/components/properties/property-table";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function ImmobilienPage() {
   return (
@@ -18,7 +20,10 @@ export default function ImmobilienPage() {
           </Button>
         }
       />
-      <PropertyTable />
+      {/* Suspense nötig: die Filter-Toolbar liest useSearchParams */}
+      <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+        <PropertyTable />
+      </Suspense>
     </>
   );
 }

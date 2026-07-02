@@ -4,11 +4,46 @@ import Link from "next/link";
 import { createColumnHelper } from "@tanstack/react-table";
 import { ExternalLink, Star } from "lucide-react";
 import { CashflowValue, ScoreBadge, StatusBadge, AnswerStatusBadge } from "./badges";
+import { PropertyRowActions } from "./property-row-actions";
 import { formatDate, formatEuro, formatFactor, formatNumber, formatPercent, formatSqm } from "@/lib/format";
-import { isOverdue, lastContactEvent, nextOpenTask, wasContacted } from "@/lib/derive";
-import { SOURCE_META } from "@/lib/constants";
+import { isOverdue, lastContactEvent, nextOpenTask, nextPlannedViewing, wasContacted } from "@/lib/derive";
+import {
+  CONDITION_META,
+  DISCARD_REASON_META,
+  RENTAL_STATUS_META,
+  SOURCE_META,
+} from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { EnrichedProperty } from "@/types";
+
+/** Deutsche Labels für das Spalten-Dropdown */
+export const COLUMN_LABELS: Record<string, string> = {
+  objekt: "Einheit / Adresse",
+  ort: "Ort",
+  etage: "Etage",
+  baujahr: "Baujahr",
+  zustand: "Zustand",
+  vermietung: "Vermietung",
+  preis: "Preis",
+  preis_qm: "Preis/m²",
+  flaeche: "Fläche",
+  zimmer: "Zimmer",
+  kaltmiete: "Kaltmiete (mtl.)",
+  rendite: "Rendite (brutto)",
+  faktor: "Faktor (KGV)",
+  cashflow: "Cashflow (mtl.)",
+  score: "Bewertung",
+  status: "Status",
+  antwort: "Antwortstatus",
+  kontaktiert: "Kontaktiert",
+  letzter_kontakt: "Letzter Kontakt",
+  naechste_aktion: "Nächste Aktion",
+  besichtigung: "Besichtigung",
+  quelle: "Quelle",
+  verwerfungsgrund: "Verwerfungsgrund",
+  notiz: "Notiz",
+  dokumente: "Dokumente",
+};
 
 const col = createColumnHelper<EnrichedProperty>();
 
@@ -37,9 +72,37 @@ export const propertyColumns = [
     header: "Ort",
     cell: (info) => info.getValue() || "—",
   }),
+  col.accessor((r) => r.property.floor, {
+    id: "etage",
+    header: "Etage",
+    cell: (info) => info.getValue() || "—",
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.property.construction_year, {
+    id: "baujahr",
+    header: "Baujahr",
+    cell: (info) => info.getValue() ?? "—",
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.property.condition, {
+    id: "zustand",
+    header: "Zustand",
+    cell: (info) => CONDITION_META[info.getValue()].label,
+  }),
+  col.accessor((r) => r.property.rental_status, {
+    id: "vermietung",
+    header: "Vermietung",
+    cell: (info) => RENTAL_STATUS_META[info.getValue()].label,
+  }),
   col.accessor((r) => r.property.price, {
     id: "preis",
     header: "Preis",
+    cell: (info) => <span className="tabular-nums">{formatEuro(info.getValue())}</span>,
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.finance.pricePerSqm, {
+    id: "preis_qm",
+    header: "Preis/m²",
     cell: (info) => <span className="tabular-nums">{formatEuro(info.getValue())}</span>,
     sortUndefined: "last",
   }),
@@ -143,6 +206,16 @@ export const propertyColumns = [
     },
     sortUndefined: "last",
   }),
+  col.accessor((r) => nextPlannedViewing(r.property)?.viewing_date ?? null, {
+    id: "besichtigung",
+    header: "Besichtigung",
+    cell: ({ row }) => {
+      const viewing = nextPlannedViewing(row.original.property);
+      if (!viewing) return <span className="text-neutral-400">—</span>;
+      return <span className="tabular-nums">{formatDate(viewing.viewing_date)}</span>;
+    },
+    sortUndefined: "last",
+  }),
   col.accessor((r) => r.property.source, {
     id: "quelle",
     header: "Quelle",
@@ -163,5 +236,46 @@ export const propertyColumns = [
         <span className="text-sm text-neutral-500">{label}</span>
       );
     },
+  }),
+  col.accessor((r) => r.property.discard_reason, {
+    id: "verwerfungsgrund",
+    header: "Verwerfungsgrund",
+    cell: (info) => {
+      const reason = info.getValue();
+      if (!reason) return <span className="text-neutral-400">—</span>;
+      return DISCARD_REASON_META[reason].label;
+    },
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.property.notes, {
+    id: "notiz",
+    header: "Notiz",
+    cell: (info) => {
+      const notes = info.getValue();
+      if (!notes) return <span className="text-neutral-400">—</span>;
+      return (
+        <span className="block max-w-48 truncate text-sm text-neutral-600" title={notes}>
+          {notes}
+        </span>
+      );
+    },
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.property.documents.length, {
+    id: "dokumente",
+    header: "Dokumente",
+    cell: (info) => <span className="tabular-nums">{info.getValue()}</span>,
+  }),
+  col.display({
+    id: "aktionen",
+    header: "",
+    enableSorting: false,
+    enableHiding: false,
+    cell: ({ row }) => (
+      <div className="flex justify-end">
+        <PropertyRowActions row={row.original} />
+      </div>
+    ),
+    size: 40,
   }),
 ];

@@ -5,10 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormProvider, useForm, useFormContext, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { AlertTriangle, Check, ExternalLink } from "lucide-react";
+import { AlertTriangle, Check, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
 } from "@/lib/finance/calc";
 import { computeScore } from "@/lib/finance/score";
 import { marketPriceForCity } from "@/lib/finance/enrich";
+import type { ExtractedListingData } from "@/lib/link-import/extract";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { findDuplicate, useCreateProperty } from "@/lib/queries/properties";
 import { useMarketPrices, useSettings } from "@/lib/queries/settings";
@@ -51,10 +53,34 @@ import {
 } from "@/lib/constants";
 import { formatEuro, formatEuroCents, formatFactor, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { MarketPriceRow, PropertyRow, SettingsRow } from "@/types/database";
+import type {
+  MarketPriceRow,
+  PropertyRow,
+  PropertySource,
+  SettingsRow,
+} from "@/types/database";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const DRAFT_KEY = "immofinder-wizard-draft";
+
+interface LinkImportResult {
+  source: PropertySource;
+  externalId: string | null;
+  blocked: boolean;
+  data: ExtractedListingData;
+}
+
+/** Mapping API-Felder → Formularfelder (nur leere Felder werden befüllt) */
+const IMPORT_FIELD_MAP: Array<[keyof ExtractedListingData, keyof PropertyFormValues, string]> = [
+  ["title", "title", "Titel"],
+  ["price", "price", "Preis"],
+  ["livingArea", "living_area", "Fläche"],
+  ["rooms", "rooms", "Zimmer"],
+  ["street", "street", "Straße"],
+  ["zip", "zip", "PLZ"],
+  ["city", "city", "Ort"],
+  ["imageUrl", "image_url", "Bild"],
+];
 
 const STEPS: Array<{ title: string; fields: Array<keyof PropertyFormValues> }> = [
   { title: "Quelle", fields: ["source_url", "source"] },
@@ -400,6 +426,8 @@ function WizardForm({
     PropertyRow,
     "id" | "title" | "status"
   > | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<LinkImportResult | null>(null);
 
   const form = useForm<PropertyFormValues, unknown, PropertyFormParsed>({
     resolver: zodResolver(propertyFormSchema),
@@ -429,6 +457,37 @@ function WizardForm({
       if (detected !== "sonstige") form.setValue("source", detected);
     }
   }, [sourceUrl, form]);
+
+  async function handleLinkImport() {
+    const url = form.getValues("source_url");
+    if (!url || !/^https?:\/\//.test(url) || importing) return;
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const res = await fetch("/api/link-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const result = (await res.json()) as LinkImportResult;
+
+      const isEmpty = (v: unknown) =>
+        v == null || v === "" || (typeof v === "number" && Number.isNaN(v));
+
+      for (const [from, to] of IMPORT_FIELD_MAP) {
+        const value = result.data[from];
+        if (value !== undefined && isEmpty(form.getValues(to))) {
+          form.setValue(to, value as never, { shouldDirty: true });
+        }
+      }
+      setImportResult(result);
+    } catch {
+      toast.error("Auslesen fehlgeschlagen — bitte Verbindung prüfen und erneut versuchen.");
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function checkForDuplicate() {
     const url = form.getValues("source_url");
@@ -520,6 +579,69 @@ function WizardForm({
                   label="Inserats-Link"
                   placeholder="https://www.immobilienscout24.de/expose/…"
                 />
+                <div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleLinkImport}
+                    disabled={!(sourceUrl && /^https?:\/\//.test(sourceUrl)) || importing}
+                  >
+                    {importing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="size-4" />
+                    )}
+                    {importing ? "Wird ausgelesen…" : "Daten auslesen"}
+                  </Button>
+                </div>
+                {importResult?.blocked && (
+                  <Alert className="border-amber-300 bg-amber-50">
+                    <AlertTriangle className="size-4 text-amber-600" />
+                    <AlertTitle>Automatisches Auslesen blockiert</AlertTitle>
+                    <AlertDescription>
+                      Diese Seite blockiert automatisches Auslesen (bei ImmoScout24
+                      üblich). Link und Quelle sind gespeichert — bitte die Daten in
+                      den nächsten Schritten kurz manuell übernehmen.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                {importResult && !importResult.blocked && (
+                  Object.keys(importResult.data).length > 0 ? (
+                    <div className="flex items-start gap-3 rounded-lg border bg-white p-3">
+                      {importResult.data.imageUrl && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={importResult.data.imageUrl}
+                          alt=""
+                          className="size-16 shrink-0 rounded-md object-cover"
+                        />
+                      )}
+                      <div className="min-w-0 space-y-1.5">
+                        <p className="truncate text-sm font-medium">
+                          {importResult.data.title ?? "Daten gefunden"}
+                        </p>
+                        <div className="flex flex-wrap gap-1">
+                          {IMPORT_FIELD_MAP.filter(
+                            ([from]) => importResult.data[from] !== undefined
+                          ).map(([from, , label]) => (
+                            <Badge key={from} variant="secondary" className="font-normal">
+                              {label} ✓
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Gefundene Werte wurden in leere Felder übernommen — bitte in
+                          den nächsten Schritten prüfen.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-neutral-500">
+                      Keine auslesbaren Daten gefunden — bitte die Felder in den
+                      nächsten Schritten manuell ausfüllen.
+                    </p>
+                  )
+                )}
                 <SelectField
                   name="source"
                   label="Quelle"
@@ -542,8 +664,9 @@ function WizardForm({
                   </Alert>
                 )}
                 <p className="text-xs text-neutral-400">
-                  Ohne Link einfach „Manuell“ wählen und weiter. Automatisches Auslesen
-                  des Links kommt beim Speichern-Schritt dazu, sobald verfügbar.
+                  Ohne Link einfach „Manuell“ wählen und weiter. Mit Link versucht
+                  „Daten auslesen“, Titel, Preis, Fläche & Adresse automatisch zu
+                  übernehmen.
                 </p>
               </div>
             )}

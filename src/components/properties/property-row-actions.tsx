@@ -291,6 +291,7 @@ export function PropertyRowActions({ row }: { row: EnrichedProperty }) {
       {/* Nachfassdatum: Popover mit Kalender, unsichtbar am Icon-Button verankert */}
       <Popover open={followUpOpen} onOpenChange={setFollowUpOpen}>
         <PopoverTrigger
+          nativeButton={false}
           render={<span aria-hidden className="absolute size-0" />}
         />
         <PopoverContent align="end" className="w-auto p-1">

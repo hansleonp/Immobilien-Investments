@@ -31,6 +31,7 @@ import { TabBesichtigungen } from "./tab-besichtigungen";
 import { TabDokumente } from "./tab-dokumente";
 import { TabNotizen } from "./tab-notizen";
 import { TabKi } from "./tab-ki";
+import { TabKaufpruefung } from "./tab-kaufpruefung";
 import { TabEntscheidung } from "./tab-entscheidung";
 
 export function PropertyDetail({ id }: { id: string }) {
@@ -166,6 +167,7 @@ export function PropertyDetail({ id }: { id: string }) {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="kaufpruefung">Kaufprüfung</TabsTrigger>
             <TabsTrigger value="notizen">Notizen</TabsTrigger>
             <TabsTrigger value="ki">
               <Sparkles className="size-3.5" /> KI-Analyse
@@ -190,6 +192,9 @@ export function PropertyDetail({ id }: { id: string }) {
         </TabsContent>
         <TabsContent value="dokumente" className="mt-4">
           <TabDokumente property={p} />
+        </TabsContent>
+        <TabsContent value="kaufpruefung" className="mt-4">
+          <TabKaufpruefung property={p} />
         </TabsContent>
         <TabsContent value="notizen" className="mt-4">
           <TabNotizen property={p} />

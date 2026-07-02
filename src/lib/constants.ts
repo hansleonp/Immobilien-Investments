@@ -134,6 +134,114 @@ export const DOCUMENT_CATEGORY_META: Record<DocumentCategory, { label: string }>
 export const DOCUMENT_CATEGORIES = Object.keys(DOCUMENT_CATEGORY_META) as DocumentCategory[];
 
 /** Besichtigungs-Checkliste (Spec §11) */
+/** Kaufprüfungs-Checkliste (Due Diligence) — bei jedem Objekt vor dem Kauf abarbeiten */
+export const PURCHASE_CHECKLIST_SECTIONS = [
+  {
+    title: "Unterlagen anfordern & prüfen",
+    items: [
+      {
+        key: "energieausweis",
+        label: "Energieausweis prüfen",
+        hint: "Ziel: Klasse D oder besser — bei E–H Sanierungskosten und GEG-Pflichten einplanen",
+      },
+      {
+        key: "ev_protokolle",
+        label: "Protokolle der letzten 3 Eigentümerversammlungen",
+        hint: "Hinweise auf Streit in der WEG, Sanierungsstau, geplante Sonderumlagen",
+      },
+      {
+        key: "teilungserklaerung",
+        label: "Teilungserklärung + Gemeinschaftsordnung",
+        hint: "Sondernutzungsrechte, Kostenverteilung, Regeln zur Vermietung",
+      },
+      {
+        key: "wirtschaftsplan",
+        label: "Wirtschaftsplan + letzte 3 Hausgeldabrechnungen",
+        hint: "Entwicklung des Hausgelds, Nachzahlungen, Wirtschaftlichkeit der WEG",
+      },
+      {
+        key: "ruecklage",
+        label: "Höhe der Instandhaltungsrücklage",
+        hint: "Faustregel: unter 10 €/m² Gesamtrücklage ist kritisch",
+      },
+      {
+        key: "grundbuch",
+        label: "Grundbuchauszug (Abteilung II + III)",
+        hint: "Lasten, Wegerechte, Nießbrauch, eingetragene Grundschulden",
+      },
+      {
+        key: "mietvertrag",
+        label: "Mietvertrag + letzte Nebenkostenabrechnung",
+        hint: "Miethöhe, Staffel-/Indexmiete, Kaution, Sonderkündigungsrechte",
+      },
+    ],
+  },
+  {
+    title: "Gebäude & Technik",
+    items: [
+      {
+        key: "sanierungsstau",
+        label: "Sanierungsstau am Gemeinschaftseigentum",
+        hint: "Dach, Fassade, Fenster, Aufzug — geplante Maßnahmen und Kosten erfragen",
+      },
+      {
+        key: "heizung",
+        label: "Heizung: Alter, Art, GEG-Pflichten",
+        hint: "Öl-/Gasheizung älter als 20 Jahre = Austauschrisiko für die WEG",
+      },
+      {
+        key: "leitungen_elektrik",
+        label: "Zustand Leitungen & Elektrik",
+        hint: "Baujahr vor 1980 ohne Modernisierung = Kostenrisiko",
+      },
+      { key: "feuchtigkeit", label: "Feuchtigkeit / Schimmel (v. a. Keller)" },
+    ],
+  },
+  {
+    title: "Mieter & Bewirtschaftung",
+    items: [
+      { key: "mietrueckstaende", label: "Mietrückstände / Zahlungshistorie erfragen" },
+      {
+        key: "mieterzufriedenheit",
+        label: "Mieterzufriedenheit — Gespräch suchen",
+        hint: "Zufriedene Langzeitmieter = stabiler Cashflow und weniger Leerstandsrisiko",
+      },
+      {
+        key: "hausverwaltung",
+        label: "Qualität der Hausverwaltung",
+        hint: "Erreichbarkeit, pünktliche Abrechnungen, Rücklagenverwaltung",
+      },
+      {
+        key: "mietspiegel",
+        label: "Miete mit Mietspiegel vergleichen",
+        hint: "Steigerungspotenzial erkennen — oder überhöhte Ist-Miete als Risiko",
+      },
+    ],
+  },
+  {
+    title: "Recht & Finanzen",
+    items: [
+      {
+        key: "erbbaurecht",
+        label: "Kein Erbbaurecht / keine Erbpacht?",
+        hint: "Falls doch: Restlaufzeit und Erbbauzins genau prüfen",
+      },
+      { key: "sonderumlagen", label: "Beschlossene oder absehbare Sonderumlagen" },
+      { key: "finanzierung", label: "Finanzierungszusage der Bank liegt vor" },
+      {
+        key: "notarvertrag",
+        label: "Kaufvertragsentwurf prüfen (lassen)",
+        hint: "Besitzübergang, Gewährleistungsausschluss, Rücktrittsrechte, Fälligkeit",
+      },
+    ],
+  },
+] as const;
+
+export const PURCHASE_CHECKLIST_TOTAL = PURCHASE_CHECKLIST_SECTIONS.reduce(
+  (sum, s) => sum + s.items.length,
+  0
+);
+
 export const VIEWING_CHECKLIST_ITEMS = [
   { key: "zustand_gebaeude", label: "Zustand Gebäude" },
   { key: "zustand_wohnung", label: "Zustand Wohnung" },

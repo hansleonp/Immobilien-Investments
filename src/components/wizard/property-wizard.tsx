@@ -34,6 +34,7 @@ import { computeScore } from "@/lib/finance/score";
 import { marketPriceForCity } from "@/lib/finance/enrich";
 import type { ExposeExtraction } from "@/lib/ai/schemas";
 import type { ExtractedListingData } from "@/lib/link-import/extract";
+import { extractFromPlainText } from "@/lib/link-import/text-extract";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { findDuplicate, useCreateProperty } from "@/lib/queries/properties";
 import { useMarketPrices, useSettings } from "@/lib/queries/settings";
@@ -451,6 +452,8 @@ function WizardForm({
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [extracting, setExtracting] = useState(false);
   const [exposeFields, setExposeFields] = useState<string[] | null>(null);
+  const [pasteText, setPasteText] = useState("");
+  const [pasteFound, setPasteFound] = useState<string[] | null>(null);
   const [exposeNeedsKey, setExposeNeedsKey] = useState(false);
 
   const form = useForm<PropertyFormValues, unknown, PropertyFormParsed>({
@@ -510,6 +513,38 @@ function WizardForm({
       toast.error("Auslesen fehlgeschlagen — bitte Verbindung prüfen und erneut versuchen.");
     } finally {
       setImporting(false);
+    }
+  }
+
+  function handlePasteExtract() {
+    if (!pasteText.trim()) return;
+    const data = extractFromPlainText(pasteText);
+    const isEmpty = (v: unknown) =>
+      v == null || v === "" || (typeof v === "number" && Number.isNaN(v));
+    const mapping: Array<[unknown, keyof PropertyFormValues, string]> = [
+      [data.title, "title", "Titel"],
+      [data.price, "price", "Preis"],
+      [data.livingArea, "living_area", "Fläche"],
+      [data.rooms, "rooms", "Zimmer"],
+      [data.street, "street", "Straße"],
+      [data.zip, "zip", "PLZ"],
+      [data.city, "city", "Ort"],
+      [data.floor, "floor", "Etage"],
+      [data.constructionYear, "construction_year", "Baujahr"],
+      [data.hausgeld, "hausgeld", "Hausgeld"],
+      [data.currentRentCold, "current_rent_cold", "Kaltmiete"],
+    ];
+    const found: string[] = [];
+    for (const [value, to, label] of mapping) {
+      if (value == null) continue;
+      found.push(label);
+      if (isEmpty(form.getValues(to))) {
+        form.setValue(to, value as never, { shouldDirty: true });
+      }
+    }
+    setPasteFound(found);
+    if (found.length === 0) {
+      toast.info("Im eingefügten Text wurden keine Daten erkannt.");
     }
   }
 
@@ -659,15 +694,53 @@ function WizardForm({
                   </Button>
                 </div>
                 {importResult?.blocked && (
-                  <Alert className="border-amber-300 bg-amber-50">
-                    <AlertTriangle className="size-4 text-amber-600" />
-                    <AlertTitle>Automatisches Auslesen blockiert</AlertTitle>
-                    <AlertDescription>
-                      Diese Seite blockiert automatisches Auslesen (bei ImmoScout24
-                      üblich). Link und Quelle sind gespeichert — bitte die Daten in
-                      den nächsten Schritten kurz manuell übernehmen.
-                    </AlertDescription>
-                  </Alert>
+                  <>
+                    <Alert className="border-amber-300 bg-amber-50">
+                      <AlertTriangle className="size-4 text-amber-600" />
+                      <AlertTitle>Automatisches Auslesen blockiert</AlertTitle>
+                      <AlertDescription>
+                        Diese Seite blockiert Server-Abrufe (bei ImmoScout24 üblich).
+                        Kein Problem: Entweder auf der Inseratsseite den Knopf der
+                        Chrome-Erweiterung nutzen — oder unten den Seiteninhalt
+                        einfügen.
+                      </AlertDescription>
+                    </Alert>
+                    <div className="space-y-2 rounded-lg border bg-white p-3">
+                      <Label htmlFor="paste-text">
+                        Seiteninhalt einfügen{" "}
+                        <span className="font-normal text-neutral-400">
+                          (auf der Inseratsseite Strg/Cmd+A, kopieren, hier einfügen)
+                        </span>
+                      </Label>
+                      <Textarea
+                        id="paste-text"
+                        rows={4}
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                        placeholder="Kompletten Seitentext hier einfügen…"
+                      />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handlePasteExtract}
+                          disabled={!pasteText.trim()}
+                        >
+                          <Sparkles className="size-3.5" /> Aus Text übernehmen
+                        </Button>
+                        {pasteFound && pasteFound.length > 0 && (
+                          <div className="flex flex-wrap gap-1">
+                            {pasteFound.map((label) => (
+                              <Badge key={label} variant="secondary" className="font-normal">
+                                {label} ✓
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
                 )}
                 {importResult && !importResult.blocked && (
                   Object.keys(importResult.data).length > 0 ? (

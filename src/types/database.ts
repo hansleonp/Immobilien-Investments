@@ -170,6 +170,7 @@ export type PropertyRow = {
   purchased_at: string | null;
   notes: string | null;
   ai_analysis: Json | null;
+  purchase_checklist: Json;
   ai_analyzed_at: string | null;
 }
 

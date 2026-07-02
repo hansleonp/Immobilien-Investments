@@ -32,6 +32,7 @@ import {
 } from "@/lib/finance/calc";
 import { computeScore } from "@/lib/finance/score";
 import { marketPriceForCity } from "@/lib/finance/enrich";
+import type { ExposeExtraction } from "@/lib/ai/schemas";
 import type { ExtractedListingData } from "@/lib/link-import/extract";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { findDuplicate, useCreateProperty } from "@/lib/queries/properties";
@@ -80,6 +81,25 @@ const IMPORT_FIELD_MAP: Array<[keyof ExtractedListingData, keyof PropertyFormVal
   ["zip", "zip", "PLZ"],
   ["city", "city", "Ort"],
   ["imageUrl", "image_url", "Bild"],
+];
+
+/** Mapping Exposé-Extraktion (KI) → Formularfelder (nur leere Felder werden befüllt) */
+const EXPOSE_FIELD_MAP: Array<[keyof ExposeExtraction, keyof PropertyFormValues, string]> = [
+  ["title", "title", "Titel"],
+  ["price", "price", "Preis"],
+  ["living_area", "living_area", "Fläche"],
+  ["rooms", "rooms", "Zimmer"],
+  ["street", "street", "Straße"],
+  ["zip", "zip", "PLZ"],
+  ["city", "city", "Ort"],
+  ["floor", "floor", "Etage"],
+  ["construction_year", "construction_year", "Baujahr"],
+  ["condition", "condition", "Zustand"],
+  ["rental_status", "rental_status", "Vermietungsstatus"],
+  ["current_rent_cold", "current_rent_cold", "Kaltmiete"],
+  ["hausgeld", "hausgeld", "Hausgeld"],
+  ["hausgeld_non_recoverable", "hausgeld_non_recoverable", "Nicht umlagefähig"],
+  ["energy_class", "energy_class", "Energieklasse"],
 ];
 
 const STEPS: Array<{ title: string; fields: Array<keyof PropertyFormValues> }> = [
@@ -428,6 +448,10 @@ function WizardForm({
   > | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<LinkImportResult | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [extracting, setExtracting] = useState(false);
+  const [exposeFields, setExposeFields] = useState<string[] | null>(null);
+  const [exposeNeedsKey, setExposeNeedsKey] = useState(false);
 
   const form = useForm<PropertyFormValues, unknown, PropertyFormParsed>({
     resolver: zodResolver(propertyFormSchema),
@@ -486,6 +510,46 @@ function WizardForm({
       toast.error("Auslesen fehlgeschlagen — bitte Verbindung prüfen und erneut versuchen.");
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleExposeExtract() {
+    if (!pdfFile || extracting) return;
+    setExtracting(true);
+    setExposeFields(null);
+    setExposeNeedsKey(false);
+    try {
+      const fd = new FormData();
+      fd.append("file", pdfFile);
+      const res = await fetch("/api/ai/expose", { method: "POST", body: fd });
+      if (res.status === 503) {
+        setExposeNeedsKey(true);
+        return;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const { data } = (await res.json()) as { data: ExposeExtraction };
+
+      // "unbekannt" bei Selects gilt als leer (Default-Wert)
+      const isEmpty = (v: unknown) =>
+        v == null ||
+        v === "" ||
+        v === "unbekannt" ||
+        (typeof v === "number" && Number.isNaN(v));
+
+      const found: string[] = [];
+      for (const [from, to, label] of EXPOSE_FIELD_MAP) {
+        const value = data[from];
+        if (value == null || value === "unbekannt") continue;
+        found.push(label);
+        if (isEmpty(form.getValues(to))) {
+          form.setValue(to, value as never, { shouldDirty: true });
+        }
+      }
+      setExposeFields(found);
+    } catch {
+      toast.error("Exposé-Auslesen fehlgeschlagen — bitte erneut versuchen.");
+    } finally {
+      setExtracting(false);
     }
   }
 
@@ -642,6 +706,69 @@ function WizardForm({
                     </p>
                   )
                 )}
+                <div className="space-y-3 border-t pt-4">
+                  <Label htmlFor="expose-pdf">Oder Exposé-PDF hochladen</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      id="expose-pdf"
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      className="max-w-xs"
+                      onChange={(e) => {
+                        setPdfFile(e.target.files?.[0] ?? null);
+                        setExposeFields(null);
+                        setExposeNeedsKey(false);
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleExposeExtract}
+                      disabled={!pdfFile || extracting}
+                    >
+                      {extracting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Sparkles className="size-4" />
+                      )}
+                      {extracting ? "Wird ausgelesen…" : "Exposé auslesen"}
+                    </Button>
+                  </div>
+                  {exposeNeedsKey && (
+                    <Alert className="border-amber-300 bg-amber-50">
+                      <AlertTriangle className="size-4 text-amber-600" />
+                      <AlertTitle>
+                        KI-Auslesen benötigt einen Anthropic-API-Key
+                      </AlertTitle>
+                      <AlertDescription>
+                        Einrichtung: API-Key auf console.anthropic.com erstellen
+                        und als ANTHROPIC_API_KEY in .env.local (lokal) bzw. in den
+                        Vercel-Umgebungsvariablen hinterlegen, dann neu starten.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {exposeFields &&
+                    (exposeFields.length > 0 ? (
+                      <div className="space-y-1.5 rounded-lg border bg-white p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {exposeFields.map((label) => (
+                            <Badge key={label} variant="secondary" className="font-normal">
+                              {label} ✓
+                            </Badge>
+                          ))}
+                        </div>
+                        <p className="text-xs text-neutral-400">
+                          Gefundene Werte wurden in leere Felder übernommen — bitte in
+                          den nächsten Schritten prüfen.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-neutral-500">
+                        Keine auslesbaren Daten im PDF gefunden — bitte die Felder
+                        manuell ausfüllen.
+                      </p>
+                    ))}
+                </div>
                 <SelectField
                   name="source"
                   label="Quelle"

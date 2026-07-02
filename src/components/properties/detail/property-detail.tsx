@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Sparkles, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,7 @@ import { TabAufgaben } from "./tab-aufgaben";
 import { TabBesichtigungen } from "./tab-besichtigungen";
 import { TabDokumente } from "./tab-dokumente";
 import { TabNotizen } from "./tab-notizen";
+import { TabKi } from "./tab-ki";
 import { TabEntscheidung } from "./tab-entscheidung";
 
 export function PropertyDetail({ id }: { id: string }) {
@@ -166,6 +167,9 @@ export function PropertyDetail({ id }: { id: string }) {
               )}
             </TabsTrigger>
             <TabsTrigger value="notizen">Notizen</TabsTrigger>
+            <TabsTrigger value="ki">
+              <Sparkles className="size-3.5" /> KI-Analyse
+            </TabsTrigger>
             <TabsTrigger value="entscheidung">Entscheidung</TabsTrigger>
           </TabsList>
         </div>
@@ -189,6 +193,9 @@ export function PropertyDetail({ id }: { id: string }) {
         </TabsContent>
         <TabsContent value="notizen" className="mt-4">
           <TabNotizen property={p} />
+        </TabsContent>
+        <TabsContent value="ki" className="mt-4">
+          <TabKi enriched={enriched} />
         </TabsContent>
         <TabsContent value="entscheidung" className="mt-4">
           <TabEntscheidung property={p} />

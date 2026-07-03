@@ -100,7 +100,7 @@ export function unwrapTrackingUrl(rawUrl: string): string | null {
 }
 
 /** Prüft, ob eine URL wie ein Inserats-Link aussieht (nicht Startseite/Abmelden etc.) */
-function isListingUrl(u: URL): boolean {
+export function isListingUrl(u: URL): boolean {
   const host = u.hostname.toLowerCase();
   const path = u.pathname;
   if (host === "immobilienscout24.de" || host.endsWith(".immobilienscout24.de")) {
@@ -156,51 +156,52 @@ export interface ExtractedLink {
   title: string | null;
 }
 
+/** Markennamen der unterstützten Portale — auch in Tracker-Subdomains enthalten */
+const PORTAL_BRAND = /immowelt|immobilienscout24|kleinanzeigen|immonet/i;
+
+/** Gehört die URL (auch als Klick-Tracker-Subdomain) zu einem der Portale? */
+export function isPortalHost(rawUrl: string): boolean {
+  try {
+    return PORTAL_BRAND.test(new URL(rawUrl).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /**
- * Findet alle Inserats-Links in einer Suchagenten-Mail: <a href> im HTML
- * (via cheerio) plus nackte URLs im Text-Teil. URLs werden normalisiert
- * und innerhalb der Mail dedupliziert; der Link-Text dient als
- * Titel-Kandidat.
+ * Wandelt einen rohen Link synchron in eine normalisierte Inserats-URL um:
+ * direkter Inserats-Link oder per unwrapTrackingUrl eingebettete URL.
+ * Liefert null, wenn ohne Netzwerk-Auflösung kein Inserat erkennbar ist.
  */
-export function extractListingLinks(html: string, text: string): ExtractedLink[] {
+export function toListingUrl(rawUrl: string): string | null {
+  for (const candidate of [rawUrl, unwrapTrackingUrl(rawUrl)]) {
+    if (!candidate) continue;
+    const normalized = normalizeListingUrl(candidate);
+    if (!normalized) continue;
+    try {
+      if (isListingUrl(new URL(normalized))) return normalized;
+    } catch {
+      // ungültige URL — nächster Kandidat
+    }
+  }
+  return null;
+}
+
+/**
+ * Alle Links einer Mail (roh, unnormalisiert, aber dedupliziert): <a href>
+ * im HTML plus nackte URLs im Text-Teil. Der Link-Text dient als
+ * Titel-Kandidat. Grundlage sowohl für die synchrone Inserats-Erkennung als
+ * auch für die netzwerkbasierte Tracker-Auflösung im Webhook.
+ */
+export function extractAllLinks(html: string, text: string): ExtractedLink[] {
   // Map behält Einfüge-Reihenfolge → stabile Ausgabe
   const found = new Map<string, string | null>();
 
   const add = (rawUrl: string, title: string | null): void => {
-    // Direkter Inserats-Link? Sonst versuchen, aus einem Tracking-Link die
-    // eingebettete Inserats-URL zu entpacken.
-    let listingRaw = rawUrl;
-    const directNorm = normalizeListingUrl(rawUrl);
-    let isDirect = false;
-    if (directNorm) {
-      try {
-        isDirect = isListingUrl(new URL(directNorm));
-      } catch {
-        isDirect = false;
-      }
-    }
-    if (!isDirect) {
-      const unwrapped = unwrapTrackingUrl(rawUrl);
-      if (!unwrapped) return;
-      listingRaw = unwrapped;
-    }
-
-    const normalized = normalizeListingUrl(listingRaw);
-    if (!normalized) return;
-    let u: URL;
-    try {
-      u = new URL(normalized);
-    } catch {
-      return;
-    }
-    if (!isListingUrl(u)) return;
-    const existing = found.get(normalized);
-    if (existing === undefined) {
-      found.set(normalized, title);
-    } else if (existing === null && title) {
-      // Duplikat mit besserem Titel → Titel nachrüsten
-      found.set(normalized, title);
-    }
+    if (!/^https?:\/\//i.test(rawUrl)) return;
+    const existing = found.get(rawUrl);
+    if (existing === undefined) found.set(rawUrl, title);
+    else if (existing === null && title) found.set(rawUrl, title);
   };
 
   if (html) {
@@ -225,6 +226,25 @@ export function extractListingLinks(html: string, text: string): ExtractedLink[]
     }
   }
 
+  return [...found.entries()].map(([url, title]) => ({ url, title }));
+}
+
+/**
+ * Findet die direkt (ohne Netzwerk) erkennbaren Inserats-Links einer Mail:
+ * direkte Portal-Links und im Tracking-Link eingebettete URLs. URLs werden
+ * normalisiert und dedupliziert; der beste Link-Text gewinnt als Titel.
+ * Klick-Tracker ohne eingebettete Ziel-URL (z. B. click.by.immowelt.de) werden
+ * hier NICHT aufgelöst — das übernimmt resolveListingUrl im Webhook.
+ */
+export function extractListingLinks(html: string, text: string): ExtractedLink[] {
+  const found = new Map<string, string | null>();
+  for (const { url, title } of extractAllLinks(html, text)) {
+    const listing = toListingUrl(url);
+    if (!listing) continue;
+    const existing = found.get(listing);
+    if (existing === undefined) found.set(listing, title);
+    else if (existing === null && title) found.set(listing, title);
+  }
   return [...found.entries()].map(([url, title]) => ({ url, title }));
 }
 

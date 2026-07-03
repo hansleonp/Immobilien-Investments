@@ -9,13 +9,58 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 
 import {
-  extractListingLinks,
+  extractAllLinks,
   extractListingMeta,
+  isListingUrl,
+  isPortalHost,
+  normalizeListingUrl,
   parseInboundPayload,
+  toListingUrl,
+  type ExtractedLink,
 } from "@/lib/email-import/parse";
+import { resolveListingUrl } from "@/lib/email-import/resolve";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ImportInboxInsert, Json } from "@/types/database";
+
+/**
+ * Ermittelt alle Inserats-Links einer Mail: erst synchron (direkte + im
+ * Tracking-Link eingebettete URLs), dann per Netzwerk-Redirect für opake
+ * Portal-Klick-Tracker (z. B. click.by.immowelt.de). Ergebnis normalisiert
+ * und dedupliziert, bester Titel gewinnt.
+ */
+async function collectListingLinks(html: string, text: string): Promise<ExtractedLink[]> {
+  const direct: ExtractedLink[] = [];
+  const trackers: ExtractedLink[] = [];
+  for (const link of extractAllLinks(html, text)) {
+    const listing = toListingUrl(link.url);
+    if (listing) direct.push({ url: listing, title: link.title });
+    else if (isPortalHost(link.url)) trackers.push(link);
+  }
+
+  const resolved = await Promise.all(
+    trackers.map(async (link) => {
+      const url = await resolveListingUrl(link.url);
+      return url ? { url, title: link.title } : null;
+    })
+  );
+
+  const found = new Map<string, string | null>();
+  for (const link of [...direct, ...resolved]) {
+    if (!link) continue;
+    const normalized = normalizeListingUrl(link.url);
+    if (!normalized) continue;
+    try {
+      if (!isListingUrl(new URL(normalized))) continue;
+    } catch {
+      continue;
+    }
+    const existing = found.get(normalized);
+    if (existing === undefined) found.set(normalized, link.title);
+    else if (existing === null && link.title) found.set(normalized, link.title);
+  }
+  return [...found.entries()].map(([url, title]) => ({ url, title }));
+}
 
 /** Timing-sicherer Vergleich über SHA-256-Hashes (gleiche Länge garantiert) */
 function secretMatches(provided: string | null, expected: string): boolean {
@@ -71,7 +116,7 @@ export async function POST(request: Request) {
     return Response.json({ accepted: false, reason: "Unbekanntes Payload-Format" });
   }
 
-  const links = extractListingLinks(mail.html, mail.text);
+  const links = await collectListingLinks(mail.html, mail.text);
   const debug = new URL(request.url).searchParams.get("debug") === "1";
   const errors: string[] = [];
   let created = 0;

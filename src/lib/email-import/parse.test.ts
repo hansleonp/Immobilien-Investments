@@ -1,12 +1,51 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  extractAllLinks,
   extractListingLinks,
   extractListingMeta,
+  isPortalHost,
   normalizeListingUrl,
   parseInboundPayload,
+  toListingUrl,
   unwrapTrackingUrl,
 } from "./parse";
+
+describe("Klick-Tracker ohne eingebettete Ziel-URL (Netzwerk-Auflösung nötig)", () => {
+  const CLICK = "https://click.by.immowelt.de/?qs=ABB7InYiOjEsImQiOjQ5MjZ9ADMxyz";
+
+  it("isPortalHost erkennt Klick-Tracker-Subdomains der Portale", () => {
+    expect(isPortalHost(CLICK)).toBe(true);
+    expect(isPortalHost("https://email.immobilienscout24.de/r/x")).toBe(true);
+    expect(isPortalHost("https://example.com/x")).toBe(false);
+    expect(isPortalHost("kein-link")).toBe(false);
+  });
+
+  it("toListingUrl liefert null, wenn keine Ziel-URL im Link steckt", () => {
+    // Opaker Tracker → ohne Redirect nicht auflösbar
+    expect(toListingUrl(CLICK)).toBeNull();
+  });
+
+  it("toListingUrl erkennt direkte und eingebettete Inserats-Links", () => {
+    expect(toListingUrl("https://www.immowelt.de/expose/aa11?utm_source=x")).toBe(
+      "https://www.immowelt.de/expose/aa11"
+    );
+    expect(
+      toListingUrl(
+        "https://links.immowelt.de/c/1?url=" +
+          encodeURIComponent("https://www.immowelt.de/expose/bb22")
+      )
+    ).toBe("https://www.immowelt.de/expose/bb22");
+  });
+
+  it("extractAllLinks gibt rohe Tracker-Links (unnormalisiert) zurück", () => {
+    const html = `<a href="${CLICK}">2 Zimmer · 68 m²</a>`;
+    const all = extractAllLinks(html, "");
+    expect(all).toEqual([{ url: CLICK, title: "2 Zimmer · 68 m²" }]);
+    // Der Listings-Only-Extractor lässt den opaken Tracker (korrekt) fallen
+    expect(extractListingLinks(html, "")).toEqual([]);
+  });
+});
 
 describe("unwrapTrackingUrl / Tracking-Links", () => {
   it("entpackt eine als Query-Param eingebettete Immowelt-URL", () => {

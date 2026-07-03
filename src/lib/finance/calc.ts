@@ -40,6 +40,8 @@ export interface FinanceResult {
   cashflow: number | null;
   // Kennzahlen
   grossYield: number | null;
+  /** Effektivrendite auf Gesamtkosten (inkl. Nebenkosten + Sanierung) */
+  effectiveYield: number | null;
   purchaseFactor: number | null;
   pricePerSqm: number | null;
   rentPerSqm: number | null;
@@ -187,6 +189,8 @@ export function computeFinance(input: FinanceInput, a: Assumptions): FinanceResu
       : null;
 
   const grossYield = P != null && P > 0 && M != null ? ((12 * M) / P) * 100 : null;
+  const effectiveYield =
+    totalCost != null && totalCost > 0 && M != null ? ((12 * M) / totalCost) * 100 : null;
   const purchaseFactor = P != null && M != null && M > 0 ? P / (12 * M) : null;
   const pricePerSqm =
     P != null && input.livingArea != null && input.livingArea > 0
@@ -197,8 +201,15 @@ export function computeFinance(input: FinanceInput, a: Assumptions): FinanceResu
       ? M / input.livingArea
       : null;
 
+  // Max. Kaufpreis, bei dem die EFFEKTIVrendite (auf Gesamtkosten) die Zielrendite
+  // erreicht: targetYield = 1200·M / (P·(1+k/100)+R)  ⟹  P = (1200·M/g − R)/(1+k/100).
   const maxPriceYield =
-    M != null && a.targetYield > 0 ? (1200 * M) / a.targetYield : null;
+    M != null && a.targetYield > 0
+      ? Math.max(
+          0,
+          ((1200 * M) / a.targetYield - R) / (1 + a.purchaseCostsPercent / 100)
+        )
+      : null;
   const maxPriceCashflow = maxPriceForCashflow(a.minCashflow, input, a);
   const breakEvenPrice = maxPriceForCashflow(0, input, a);
 
@@ -229,6 +240,7 @@ export function computeFinance(input: FinanceInput, a: Assumptions): FinanceResu
     maintenanceMonthly: I,
     cashflow,
     grossYield,
+    effectiveYield,
     purchaseFactor,
     pricePerSqm,
     rentPerSqm,

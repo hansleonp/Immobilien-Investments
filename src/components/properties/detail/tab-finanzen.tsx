@@ -325,12 +325,13 @@ function ScenarioCalculator({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           <ScenarioMetric
             label="Cashflow (mtl.)"
             value={<CashflowValue value={finance.cashflow} />}
           />
           <ScenarioMetric label="Bruttorendite" value={formatPercent(finance.grossYield)} />
+          <ScenarioMetric label="Effektivrendite" value={formatPercent(finance.effectiveYield)} />
           <ScenarioMetric label="Kaufpreisfaktor" value={formatFactor(finance.purchaseFactor)} />
           <ScenarioMetric
             label="Score"

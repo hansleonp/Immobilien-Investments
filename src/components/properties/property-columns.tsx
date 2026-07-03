@@ -31,6 +31,7 @@ export const COLUMN_LABELS: Record<string, string> = {
   zimmer: "Zimmer",
   kaltmiete: "Kaltmiete (mtl.)",
   rendite: "Rendite (brutto)",
+  rendite_eff: "Rendite (effektiv)",
   faktor: "Faktor (KGV)",
   cashflow: "Cashflow (mtl.)",
   score: "Bewertung",
@@ -131,6 +132,12 @@ export const propertyColumns = [
   col.accessor((r) => r.finance.grossYield, {
     id: "rendite",
     header: "Rendite (brutto)",
+    cell: (info) => <span className="tabular-nums">{formatPercent(info.getValue())}</span>,
+    sortUndefined: "last",
+  }),
+  col.accessor((r) => r.finance.effectiveYield, {
+    id: "rendite_eff",
+    header: "Rendite (effektiv)",
     cell: (info) => <span className="tabular-nums">{formatPercent(info.getValue())}</span>,
     sortUndefined: "last",
   }),

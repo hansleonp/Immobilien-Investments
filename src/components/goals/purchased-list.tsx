@@ -27,6 +27,7 @@ export function PurchasedList({ purchased }: { purchased: EnrichedProperty[] }) 
   const totalInvestment = sumOrNull(sorted.map((r) => r.finance.totalCost));
   const totalCashflow = sumOrNull(sorted.map((r) => r.finance.cashflow));
   const avgYield = avgOrNull(sorted.map((r) => r.finance.grossYield));
+  const avgEffYield = avgOrNull(sorted.map((r) => r.finance.effectiveYield));
   const avgFactor = avgOrNull(sorted.map((r) => r.finance.purchaseFactor));
 
   return (
@@ -66,7 +67,7 @@ export function PurchasedList({ purchased }: { purchased: EnrichedProperty[] }) 
             </ul>
 
             {/* Summen */}
-            <div className="grid grid-cols-2 gap-3 rounded-lg bg-neutral-50 p-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 rounded-lg bg-neutral-50 p-4 sm:grid-cols-5">
               <div>
                 <p className="text-xs text-neutral-500">Gesamtinvestition</p>
                 <p className="mt-0.5 text-sm font-semibold tabular-nums">
@@ -83,6 +84,12 @@ export function PurchasedList({ purchased }: { purchased: EnrichedProperty[] }) 
                 <p className="text-xs text-neutral-500">Ø Bruttorendite</p>
                 <p className="mt-0.5 text-sm font-semibold tabular-nums">
                   {formatPercent(avgYield)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-neutral-500">Ø Effektivrendite</p>
+                <p className="mt-0.5 text-sm font-semibold tabular-nums">
+                  {formatPercent(avgEffYield)}
                 </p>
               </div>
               <div>

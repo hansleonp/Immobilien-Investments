@@ -41,10 +41,12 @@ export function computeScore(args: {
 }): ScoreResult {
   const { finance, ratings, marketPricePerSqm, assumptions } = args;
 
-  // Rendite: 50 Punkte exakt bei Zielrendite, ±2 Prozentpunkte spannen die Skala auf
+  // Rendite: 50 Punkte exakt bei Zielrendite, ±2 Prozentpunkte spannen die Skala auf.
+  // Bewertet wird die Effektivrendite (auf Gesamtkosten inkl. Nebenkosten) — realistischer
+  // als die Bruttorendite auf den reinen Kaufpreis.
   const renditeScore =
-    finance.grossYield != null
-      ? clamp(50 + (finance.grossYield - assumptions.targetYield) * 25)
+    finance.effectiveYield != null
+      ? clamp(50 + (finance.effectiveYield - assumptions.targetYield) * 25)
       : null;
 
   // Cashflow: 50 Punkte bei Mindestcashflow, ±200 € spannen die Skala auf

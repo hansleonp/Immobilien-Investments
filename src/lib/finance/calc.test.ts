@@ -46,13 +46,16 @@ describe("computeFinance", () => {
 
   it("berechnet Cashflow, Rendite und KGV", () => {
     expect(r.cashflow).toBeCloseTo(-251.73, 1);
-    expect(r.grossYield).toBeCloseTo(4.5, 5);
+    expect(r.grossYield).toBeCloseTo(4.5, 5); // brutto auf Kaufpreis: 12·750/200.000
+    // effektiv auf Gesamtkosten: 12·750 / 224.140 ≈ 4,015 %
+    expect(r.effectiveYield).toBeCloseTo(4.015, 2);
     expect(r.purchaseFactor).toBeCloseTo(22.22, 1);
     expect(r.pricePerSqm).toBeCloseTo(3333.33, 1);
   });
 
   it("berechnet Preisgrenzen und die bindende Grenze", () => {
-    expect(r.maxPriceYield).toBeCloseTo(225_000, 0);
+    // Max. Kaufpreis für 4 % EFFEKTIVrendite: (1200·750/4 − 0)/1,1207 ≈ 200.767
+    expect(r.maxPriceYield).toBeCloseTo(200_767, 0);
     expect(r.breakEvenPrice).toBeCloseTo(140_889.4, 0);
     // minCashflow = 0 → Cashflow-Grenze = Break-even, und sie ist die bindende
     expect(r.maxPriceCashflow).toBeCloseTo(140_889.4, 0);

@@ -36,8 +36,9 @@ describe("computeScore", () => {
       marketPricePerSqm: 3400,
       assumptions: ASSUMPTIONS,
     });
-    // Rendite 62,5 · Cashflow 0 (geclampt) · Markt ~54,9 über 70 % Gewicht → 38
-    expect(r.score).toBe(38);
+    // Rendite ~50,4 (effektiv 4,015 % ≈ Ziel) · Cashflow 0 (geclampt) · Markt ~54,9
+    // über 70 % Gewicht → 34
+    expect(r.score).toBe(34);
     expect(r.recommendation).toBe("ablehnen");
     expect(r.isOverride).toBe(false);
   });
@@ -49,8 +50,8 @@ describe("computeScore", () => {
       marketPricePerSqm: null,
       assumptions: ASSUMPTIONS,
     });
-    // (62,5·25 + 0·25) / 50 = 31,25 → 31
-    expect(r.score).toBe(31);
+    // (50,38·25 + 0·25) / 50 = 25,19 → 25
+    expect(r.score).toBe(25);
   });
 
   it("bezieht manuelle Ratings mit voller Gewichtung ein", () => {
@@ -60,8 +61,8 @@ describe("computeScore", () => {
       marketPricePerSqm: 3400,
       assumptions: ASSUMPTIONS,
     });
-    // + Lage 75·10, Vermietbarkeit 50·10, Zustand 25·10 → 41,6 → 42
-    expect(r.score).toBe(42);
+    // + Lage 75·10, Vermietbarkeit 50·10, Zustand 25·10 → 38,6 → 39
+    expect(r.score).toBe(39);
   });
 
   it("clampt Kriterien auf 0–100", () => {

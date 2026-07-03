@@ -66,6 +66,15 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
               <span className="font-medium tabular-nums">{formatPercent(finance.grossYield)}</span>
             </div>
             <div className="flex justify-between">
+              <span
+                className="text-neutral-500"
+                title="Jahreskaltmiete ÷ Gesamtkosten (inkl. Kaufnebenkosten + Sanierung)"
+              >
+                Effektivrendite (Gesamtkosten)
+              </span>
+              <span className="font-medium tabular-nums">{formatPercent(finance.effectiveYield)}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-neutral-500">Kaufpreisfaktor</span>
               <span className="font-medium tabular-nums">{formatFactor(finance.purchaseFactor)}</span>
             </div>

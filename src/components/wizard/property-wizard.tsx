@@ -288,6 +288,7 @@ function EvaluationPanel({
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <Metric label="Bruttorendite" value={formatPercent(finance.grossYield)} />
+        <Metric label="Effektivrendite" value={formatPercent(finance.effectiveYield)} />
         <Metric label="Kaufpreisfaktor" value={formatFactor(finance.purchaseFactor)} />
         <Metric
           label="Cashflow (mtl.)"

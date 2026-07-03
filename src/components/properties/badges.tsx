@@ -36,6 +36,58 @@ export function ViewingStatusBadge({ status }: { status: ViewingStatus }) {
   return <Badge className={cn("border-transparent", meta.badge)}>{meta.label}</Badge>;
 }
 
+/** Ampelfarben je Energieeffizienzklasse (A+/A grün → H rot), wie auf dem Energieausweis */
+const ENERGY_CLASS_BADGE: Record<string, string> = {
+  "A+": "bg-green-600 text-white",
+  A: "bg-green-500 text-white",
+  B: "bg-lime-500 text-white",
+  C: "bg-yellow-400 text-yellow-950",
+  D: "bg-amber-400 text-amber-950",
+  E: "bg-orange-400 text-white",
+  F: "bg-orange-600 text-white",
+  G: "bg-red-500 text-white",
+  H: "bg-red-700 text-white",
+};
+
+export function EnergyClassBadge({ value }: { value: string | null }) {
+  if (!value || !value.trim()) return <span className="text-neutral-300">—</span>;
+  const cls = value.trim().toUpperCase();
+  const badge = ENERGY_CLASS_BADGE[cls];
+  if (!badge) return <span className="text-sm">{value}</span>;
+  return (
+    <Badge className={cn("min-w-7 justify-center border-transparent font-semibold", badge)}>
+      {cls}
+    </Badge>
+  );
+}
+
+/** "vs. Markt": % über/unter dem Referenz-€/m² der Stadt (unter Markt = grün) */
+export function MarketDeltaValue({
+  pricePerSqm,
+  marketPricePerSqm,
+}: {
+  pricePerSqm: number | null;
+  marketPricePerSqm: number | null;
+}) {
+  if (pricePerSqm == null || marketPricePerSqm == null || marketPricePerSqm <= 0) {
+    return <span className="text-neutral-300">—</span>;
+  }
+  const delta = (pricePerSqm / marketPricePerSqm - 1) * 100;
+  const rounded = Math.round(delta);
+  return (
+    <span
+      className={cn(
+        "font-medium tabular-nums",
+        rounded <= 0 ? "text-green-700" : "text-red-600"
+      )}
+      title={`Objekt: ${Math.round(pricePerSqm).toLocaleString("de-DE")} €/m² · Markt: ${Math.round(marketPricePerSqm).toLocaleString("de-DE")} €/m²`}
+    >
+      {rounded <= 0 ? "▼" : "▲"} {rounded > 0 ? "+" : ""}
+      {rounded} %
+    </span>
+  );
+}
+
 export function LocationBadge({ cls }: { cls: LocationClass | null }) {
   if (cls == null) return <span className="text-neutral-300">—</span>;
   const meta = LOCATION_CLASS_META[cls];

@@ -22,7 +22,12 @@ import {
 import { resolveListingUrl } from "@/lib/email-import/resolve";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { ImportInboxInsert, Json } from "@/types/database";
+import type {
+  ImportInboxInsert,
+  Json,
+  MarketPriceRow,
+  PropertyInsert,
+} from "@/types/database";
 
 interface CollectedLink {
   /** normalisierte, endgültige Inserats-URL */
@@ -88,6 +93,14 @@ function composeExcerpt(meta: ListingMeta): string | null {
   return parts.length > 0 ? parts.join(" · ") : null;
 }
 
+/** Marktmiete €/m² für eine Stadt (case-insensitiver Vergleich), sonst null */
+function marketRentPerSqm(city: string | undefined, prices: MarketPriceRow[]): number | null {
+  if (!city) return null;
+  const normalized = city.trim().toLowerCase();
+  const row = prices.find((p) => p.city.trim().toLowerCase() === normalized);
+  return row?.rent_per_sqm ?? null;
+}
+
 /** Timing-sicherer Vergleich über SHA-256-Hashes (gleiche Länge garantiert) */
 function secretMatches(provided: string | null, expected: string): boolean {
   if (!provided) return false;
@@ -148,6 +161,12 @@ export async function POST(request: Request) {
   let created = 0;
   let skipped = 0;
 
+  // Marktmieten des Users einmal laden → Soll-Miete für Lead-Objekte schätzen
+  const { data: marketPrices } = await admin
+    .from("market_prices")
+    .select("*")
+    .eq("user_id", userId);
+
   for (const link of links) {
     const source = detectSource(link.url);
     const externalId = extractExternalId(link.url, source);
@@ -199,10 +218,50 @@ export async function POST(request: Request) {
       console.error("email-inbound: Insert fehlgeschlagen", error.message);
       errors.push(`${link.url}: ${error.message}`);
       skipped++;
-    } else if (data && data.length > 0) {
-      created++;
-    } else {
+      continue;
+    }
+    if (!data || data.length === 0) {
       skipped++;
+      continue;
+    }
+    created++;
+
+    // Auto-Import: Treffer zusätzlich als Lead-Objekt anlegen, damit die
+    // Immobilien-Tabelle zur aggregierten Portal-Suche wird. Soll-Miete aus
+    // den Marktmieten schätzen → Rendite/Cashflow/Score sofort berechenbar.
+    const rentPerSqm = marketRentPerSqm(meta.city, marketPrices ?? []);
+    const estimatedRent =
+      rentPerSqm != null && meta.livingArea != null
+        ? Math.round(rentPerSqm * meta.livingArea)
+        : null;
+    const lead: PropertyInsert = {
+      user_id: userId,
+      title: insert.excerpt ?? "Portal-Treffer",
+      city: meta.city ?? "Unbekannt",
+      source,
+      source_url: link.url,
+      external_id: externalId,
+      status: "lead",
+      price: meta.price ?? null,
+      living_area: meta.livingArea ?? null,
+      rooms: meta.rooms ?? null,
+      estimated_rent_cold: estimatedRent,
+      listed_at: new Date().toISOString().slice(0, 10),
+    };
+    const { data: prop, error: leadError } = await admin
+      .from("properties")
+      .insert(lead)
+      .select("id")
+      .single();
+    if (leadError) {
+      // Lead-Anlage ist best-effort — der Posteingang-Eintrag bleibt nutzbar
+      console.error("email-inbound: Lead-Anlage fehlgeschlagen", leadError.message);
+      errors.push(`lead ${link.url}: ${leadError.message}`);
+    } else if (prop) {
+      await admin
+        .from("import_inbox")
+        .update({ status: "uebernommen", property_id: prop.id })
+        .eq("id", data[0].id);
     }
   }
 

@@ -30,6 +30,7 @@ export type PropertyCondition =
 export type RentalStatus = "frei" | "vermietet" | "unbekannt";
 
 export type PropertyStatus =
+  | "lead"
   | "neu"
   | "interessant"
   | "kontaktiert"

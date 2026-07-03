@@ -50,7 +50,6 @@ const DEFAULT_HIDDEN_COLUMNS = [
   "preis_qm",
   "besichtigung",
   "verwerfungsgrund",
-  "notiz",
   "dokumente",
 ] as const;
 
@@ -109,6 +108,11 @@ export function PropertyTable() {
 
   const rows = useMemo(() => applyFilters(allRows, filters), [allRows, filters]);
 
+  const leadCount = useMemo(
+    () => allRows.filter((r) => r.property.status === "lead").length,
+    [allRows]
+  );
+
   const table = useReactTable({
     data: rows,
     columns: propertyColumns,
@@ -142,7 +146,7 @@ export function PropertyTable() {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <PropertyFilters cityOptions={cityOptions} />
+        <PropertyFilters cityOptions={cityOptions} leadCount={leadCount} />
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
             <Columns3 className="size-3.5" /> Spalten

@@ -14,6 +14,7 @@ import type {
 
 // Badge-Farbklassen: ruhige Pastelltöne, grün = positiv, rot = negativ, orange = offen
 export const STATUS_META: Record<PropertyStatus, { label: string; badge: string }> = {
+  lead: { label: "Lead", badge: "bg-cyan-100 text-cyan-800" },
   neu: { label: "Neu", badge: "bg-sky-100 text-sky-800" },
   interessant: { label: "Interessant", badge: "bg-emerald-100 text-emerald-800" },
   kontaktiert: { label: "Kontaktiert", badge: "bg-blue-100 text-blue-800" },

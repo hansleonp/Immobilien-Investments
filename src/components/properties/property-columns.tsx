@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { createColumnHelper } from "@tanstack/react-table";
 import { ExternalLink, Star } from "lucide-react";
-import { CashflowValue, LocationBadge, ScoreBadge, StatusBadge, AnswerStatusBadge } from "./badges";
+import {
+  AnswerStatusBadge,
+  CashflowValue,
+  EnergyClassBadge,
+  LocationBadge,
+  MarketDeltaValue,
+  ScoreBadge,
+  StatusBadge,
+} from "./badges";
+import { NotesCell } from "./notes-cell";
 import { PropertyRowActions } from "./property-row-actions";
 import { formatDate, formatEuro, formatFactor, formatNumber, formatPercent, formatSqm } from "@/lib/format";
 import { isOverdue, lastContactEvent, nextOpenTask, nextPlannedViewing, wasContacted } from "@/lib/derive";
@@ -33,6 +42,8 @@ export const COLUMN_LABELS: Record<string, string> = {
   kaltmiete: "Kaltmiete (mtl.)",
   rendite: "Rendite (brutto)",
   rendite_eff: "Rendite (effektiv)",
+  vs_markt: "vs. Markt",
+  energie: "Energie",
   faktor: "Faktor (KGV)",
   cashflow: "Cashflow (mtl.)",
   score: "Bewertung",
@@ -146,6 +157,30 @@ export const propertyColumns = [
     id: "rendite_eff",
     header: "Rendite (effektiv)",
     cell: (info) => <span className="tabular-nums">{formatPercent(info.getValue())}</span>,
+    sortUndefined: "last",
+  }),
+  // "vs. Markt" à la ImmoMetrica: % über/unter dem Referenz-€/m² der Stadt
+  col.accessor(
+    (r) =>
+      r.finance.pricePerSqm != null && r.marketPricePerSqm != null && r.marketPricePerSqm > 0
+        ? (r.finance.pricePerSqm / r.marketPricePerSqm - 1) * 100
+        : undefined,
+    {
+      id: "vs_markt",
+      header: "vs. Markt",
+      cell: ({ row }) => (
+        <MarketDeltaValue
+          pricePerSqm={row.original.finance.pricePerSqm}
+          marketPricePerSqm={row.original.marketPricePerSqm}
+        />
+      ),
+      sortUndefined: "last",
+    }
+  ),
+  col.accessor((r) => r.property.energy_class, {
+    id: "energie",
+    header: "Energie",
+    cell: (info) => <EnergyClassBadge value={info.getValue()} />,
     sortUndefined: "last",
   }),
   col.accessor((r) => r.finance.purchaseFactor, {
@@ -271,15 +306,12 @@ export const propertyColumns = [
   col.accessor((r) => r.property.notes, {
     id: "notiz",
     header: "Notiz",
-    cell: (info) => {
-      const notes = info.getValue();
-      if (!notes) return <span className="text-neutral-400">—</span>;
-      return (
-        <span className="block max-w-48 truncate text-sm text-neutral-600" title={notes}>
-          {notes}
-        </span>
-      );
-    },
+    cell: ({ row }) => (
+      <NotesCell
+        propertyId={row.original.property.id}
+        notes={row.original.property.notes}
+      />
+    ),
     sortUndefined: "last",
   }),
   col.accessor((r) => r.property.documents.length, {

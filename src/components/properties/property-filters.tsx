@@ -36,6 +36,7 @@ import {
 } from "@/lib/constants";
 import { nextOpenTask, nextPlannedViewing, wasContacted } from "@/lib/derive";
 import { toISODate } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { EnrichedProperty } from "@/types";
 import type { PropertySource, PropertyStatus } from "@/types/database";
 
@@ -61,6 +62,8 @@ export type FilterState = {
   viewingPlanned: boolean;
   contacted: ContactedFilter;
   showInactive: boolean;
+  /** Auto-importierte Portal-Treffer (Status "lead") einblenden */
+  showLeads: boolean;
 };
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -79,6 +82,7 @@ export const DEFAULT_FILTERS: FilterState = {
   viewingPlanned: false,
   contacted: "alle",
   showInactive: false,
+  showLeads: false,
 };
 
 // URL-Param-Namen (kurz, deutsch, bookmark-freundlich)
@@ -98,6 +102,7 @@ const PARAM = {
   viewingPlanned: "besichtigung",
   contacted: "kontaktiert",
   showInactive: "inaktive",
+  showLeads: "leads",
 } as const;
 
 type ParamsLike = Pick<URLSearchParams, "get">;
@@ -144,6 +149,7 @@ export function parseFilters(params: ParamsLike): FilterState {
     viewingPlanned: params.get(PARAM.viewingPlanned) === "1",
     contacted,
     showInactive: params.get(PARAM.showInactive) === "1",
+    showLeads: params.get(PARAM.showLeads) === "1",
   };
 }
 
@@ -164,6 +170,7 @@ export function serializeFilters(f: FilterState): string {
   if (f.viewingPlanned) params.set(PARAM.viewingPlanned, "1");
   if (f.contacted !== "alle") params.set(PARAM.contacted, f.contacted);
   if (f.showInactive) params.set(PARAM.showInactive, "1");
+  if (f.showLeads) params.set(PARAM.showLeads, "1");
   return params.toString();
 }
 
@@ -183,6 +190,7 @@ export function countActiveFilters(f: FilterState): number {
   if (f.viewingPlanned) n++;
   if (f.contacted !== "alle") n++;
   if (f.showInactive) n++;
+  if (f.showLeads) n++;
   return n;
 }
 
@@ -202,6 +210,16 @@ export function applyFilters(
 
     // Verworfene/abgelehnte/gekaufte Objekte nur bei aktivem Schalter
     if (!filters.showInactive && INACTIVE_STATUSES.includes(p.status)) {
+      return false;
+    }
+
+    // Leads (Auto-Import aus Suchagenten-Mails) nur bei aktivem Schalter
+    // oder wenn der Status-Filter sie explizit anfordert
+    if (
+      p.status === "lead" &&
+      !filters.showLeads &&
+      !filters.statuses.includes("lead")
+    ) {
       return false;
     }
 
@@ -360,7 +378,14 @@ function SwitchRow({
 }
 
 /** Filter-Toolbar über der Immobilien-Tabelle. State lebt in den URL-Params. */
-export function PropertyFilters({ cityOptions }: { cityOptions: string[] }) {
+export function PropertyFilters({
+  cityOptions,
+  leadCount = 0,
+}: {
+  cityOptions: string[];
+  /** Anzahl vorhandener Leads (für den Toolbar-Toggle) */
+  leadCount?: number;
+}) {
   const { filters, setFilters, resetFilters, activeCount } =
     usePropertyFilters();
 
@@ -490,6 +515,28 @@ export function PropertyFilters({ cityOptions }: { cityOptions: string[] }) {
           ))}
         </SelectContent>
       </Select>
+
+      {/* Leads (Auto-Import): ein Klick zeigt alle Portal-Treffer */}
+      {leadCount > 0 && (
+        <Button
+          variant={filters.showLeads ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilters({ showLeads: !filters.showLeads })}
+          title="Automatisch importierte Suchagenten-Treffer ein-/ausblenden"
+        >
+          Leads
+          <Badge
+            className={cn(
+              "ml-1 h-4 min-w-4 rounded-full px-1 text-[10px]",
+              filters.showLeads
+                ? "bg-white/20 text-white"
+                : "bg-cyan-100 text-cyan-800"
+            )}
+          >
+            {leadCount}
+          </Badge>
+        </Button>
+      )}
 
       {/* Mehr Filter */}
       <Popover>

@@ -25,4 +25,6 @@ export type EnrichedProperty = {
   finance: FinanceResult;
   score: ScoreResult;
   locationClass: LocationClass | null;
+  /** Referenz-Kaufpreis €/m² der Stadt (market_prices), für "vs. Markt" */
+  marketPricePerSqm: number | null;
 };

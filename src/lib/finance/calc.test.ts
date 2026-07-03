@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   computeFinance,
   maxPriceForCashflow,
+  requiredRentForCashflow,
   resolveAssumptions,
   resolveFinanceInput,
   type Assumptions,
@@ -119,6 +120,33 @@ describe("maxPriceForCashflow", () => {
       ASSUMPTIONS
     )!;
     expect(withRenovation).toBeLessThan(without);
+  });
+});
+
+describe("requiredRentForCashflow", () => {
+  // Fixture P=200000, k=12.07, e=20, i=3.7, t=2.0, H=90, I=60 → Rate ≈ 851,73
+  it("berechnet die für CF = 0 nötige Kaltmiete", () => {
+    const rent = requiredRentForCashflow(0, INPUT, ASSUMPTIONS)!;
+    expect(rent).toBeCloseTo(90 + 60 + 851.73, 1); // ≈ 1001,73
+  });
+
+  it("erhöht die nötige Miete um genau den Ziel-Cashflow", () => {
+    const base = requiredRentForCashflow(0, INPUT, ASSUMPTIONS)!;
+    const withTarget = requiredRentForCashflow(200, INPUT, ASSUMPTIONS)!;
+    expect(withTarget - base).toBeCloseTo(200, 5);
+  });
+
+  it("Gegenprobe: computeFinance mit dieser Miete liefert den Ziel-Cashflow", () => {
+    const rent = requiredRentForCashflow(0, INPUT, ASSUMPTIONS)!;
+    const r = computeFinance({ ...INPUT, monthlyRent: rent }, ASSUMPTIONS);
+    expect(r.cashflow).toBeCloseTo(0, 5);
+  });
+
+  it("ist null-safe bei fehlendem Preis oder fehlenden Nebenkosten", () => {
+    expect(requiredRentForCashflow(0, { ...INPUT, price: null }, ASSUMPTIONS)).toBeNull();
+    expect(
+      requiredRentForCashflow(0, { ...INPUT, nonRecoverableMonthly: null }, ASSUMPTIONS)
+    ).toBeNull();
   });
 });
 

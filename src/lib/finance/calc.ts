@@ -140,6 +140,31 @@ export function maxPriceForCashflow(
   return Math.max(0, price);
 }
 
+/**
+ * Kaltmiete, die nötig ist, um bei gegebenem Preis den Ziel-Cashflow zu erreichen.
+ * CF = M − H − I − Rate(P)  ⟹  M = CF_ziel + H + I + Rate(P).
+ * Rate hängt über das Darlehen vom Preis ab; H und I sind mietunabhängig.
+ * Nie negativ geclampt — eine „nötige Miete" kann rechnerisch klein/negativ sein
+ * (dann liegt die Anzeige/UI-Behandlung, z. B. „0 €", außerhalb dieser Funktion).
+ */
+export function requiredRentForCashflow(
+  targetCashflow: number,
+  input: Pick<
+    FinanceInput,
+    "price" | "nonRecoverableMonthly" | "maintenanceMonthly" | "plannedRenovation"
+  >,
+  a: Pick<Assumptions, "equityPercent" | "interestRate" | "repaymentRate" | "purchaseCostsPercent">
+): number | null {
+  const { price: P, nonRecoverableMonthly: H, maintenanceMonthly: I } = input;
+  if (P == null || H == null || I == null) return null;
+
+  const totalCost = P * (1 + a.purchaseCostsPercent / 100) + input.plannedRenovation;
+  const loan = totalCost * (1 - a.equityPercent / 100);
+  const rate = (loan * (a.interestRate + a.repaymentRate)) / 1200;
+
+  return targetCashflow + H + I + rate;
+}
+
 export function computeFinance(input: FinanceInput, a: Assumptions): FinanceResult {
   const { price: P, monthlyRent: M } = input;
   const H = input.nonRecoverableMonthly;

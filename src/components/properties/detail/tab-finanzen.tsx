@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,28 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CashflowValue } from "@/components/properties/badges";
+import { CashflowValue, ScoreBadge } from "@/components/properties/badges";
+import {
+  computeFinance,
+  requiredRentForCashflow,
+  resolveAssumptions,
+  resolveFinanceInput,
+  type FinanceInput,
+} from "@/lib/finance/calc";
+import { computeScore } from "@/lib/finance/score";
+import { marketPriceForCity } from "@/lib/finance/enrich";
 import { useUpdateProperty } from "@/lib/queries/properties";
-import { formatEuro, formatEuroCents, formatPercent } from "@/lib/format";
+import { formatEuro, formatEuroCents, formatFactor, formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { EnrichedProperty } from "@/types";
-import type { PropertyRow, SettingsRow } from "@/types/database";
+import type { MarketPriceRow, PropertyRow, SettingsRow } from "@/types/database";
+
+/** Leere Eingabe / NaN → null (analog Wizard) */
+function num(v: unknown): number | null {
+  if (v == null || v === "" || (typeof v === "number" && Number.isNaN(v))) return null;
+  const n = Number(v);
+  return Number.isNaN(n) ? null : n;
+}
 
 type OverrideField = {
   key: keyof Pick<
@@ -73,9 +89,11 @@ function Row({
 export function TabFinanzen({
   enriched,
   settings,
+  marketPrices,
 }: {
   enriched: EnrichedProperty;
   settings: SettingsRow;
+  marketPrices: MarketPriceRow[];
 }) {
   const { property: p, finance: f } = enriched;
   const update = useUpdateProperty();
@@ -177,6 +195,217 @@ export function TabFinanzen({
           ))}
         </CardContent>
       </Card>
+
+      <ScenarioCalculator
+        property={p}
+        settings={settings}
+        marketPrices={marketPrices}
+      />
+    </div>
+  );
+}
+
+function ScenarioCalculator({
+  property: p,
+  settings,
+  marketPrices,
+}: {
+  property: PropertyRow;
+  settings: SettingsRow;
+  marketPrices: MarketPriceRow[];
+}) {
+  const update = useUpdateProperty();
+
+  // Ist-Werte als Ausgangspunkt: Preis und effektive Miete (Ist vor Soll)
+  const actualPrice = p.price;
+  const actualRent = p.current_rent_cold ?? p.estimated_rent_cold;
+
+  const [priceInput, setPriceInput] = useState(
+    actualPrice != null ? String(actualPrice) : ""
+  );
+  const [rentInput, setRentInput] = useState(
+    actualRent != null ? String(actualRent) : ""
+  );
+
+  const scenarioPrice = num(priceInput);
+  const scenarioRent = num(rentInput);
+
+  const { finance, score, requiredRent } = useMemo(() => {
+    // Nebenkosten aus dem echten Objekt ableiten (inkl. €/m²-Fallbacks)
+    const base = resolveFinanceInput(p, settings);
+    const assumptions = resolveAssumptions(p, settings);
+
+    const input: FinanceInput = {
+      price: scenarioPrice,
+      monthlyRent: scenarioRent,
+      nonRecoverableMonthly: base.nonRecoverableMonthly,
+      maintenanceMonthly: base.maintenanceMonthly,
+      plannedRenovation: base.plannedRenovation,
+      livingArea: base.livingArea,
+    };
+
+    const finance = computeFinance(input, assumptions);
+    const marketPricePerSqm =
+      marketPriceForCity(p.city, marketPrices)?.price_per_sqm ?? null;
+    const score = computeScore({
+      finance,
+      ratings: p,
+      marketPricePerSqm,
+      assumptions,
+    });
+    const requiredRent = requiredRentForCashflow(
+      settings.min_cashflow,
+      input,
+      assumptions
+    );
+    return { finance, score, requiredRent };
+  }, [p, settings, marketPrices, scenarioPrice, scenarioRent]);
+
+  const priceDelta =
+    finance.maxReasonablePrice != null && scenarioPrice != null
+      ? finance.maxReasonablePrice - scenarioPrice
+      : null;
+
+  // requiredRent kann rechnerisch < 0 sein → für die Anzeige auf 0 clampen
+  const requiredRentDisplay = requiredRent != null ? Math.max(0, requiredRent) : null;
+  const rentMeetsTarget =
+    requiredRent != null && scenarioRent != null && scenarioRent >= requiredRent;
+
+  const isDirty =
+    scenarioPrice !== actualPrice || scenarioRent !== actualRent;
+
+  function resetToActual() {
+    setPriceInput(actualPrice != null ? String(actualPrice) : "");
+    setRentInput(actualRent != null ? String(actualRent) : "");
+  }
+
+  function applyScenario() {
+    update.mutate(
+      {
+        id: p.id,
+        values: { price: scenarioPrice, current_rent_cold: scenarioRent },
+      },
+      {
+        onSuccess: () => toast.success("Szenario übernommen"),
+        onError: () => toast.error("Übernehmen fehlgeschlagen"),
+      }
+    );
+  }
+
+  return (
+    <Card className="lg:col-span-2">
+      <CardHeader>
+        <CardTitle className="text-base">Szenario-Rechner</CardTitle>
+        <CardDescription>
+          Kaufpreis und Miete frei durchspielen — die Finanzierungsannahmen des Objekts
+          bleiben gleich. Nichts wird gespeichert, bis du „Übernehmen" klickst.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="scenario-price">Kaufpreis (Szenario)</Label>
+            <Input
+              id="scenario-price"
+              type="number"
+              step="1000"
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="scenario-rent">Kaltmiete (Szenario, mtl.)</Label>
+            <Input
+              id="scenario-rent"
+              type="number"
+              step="10"
+              value={rentInput}
+              onChange={(e) => setRentInput(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ScenarioMetric
+            label="Cashflow (mtl.)"
+            value={<CashflowValue value={finance.cashflow} />}
+          />
+          <ScenarioMetric label="Bruttorendite" value={formatPercent(finance.grossYield)} />
+          <ScenarioMetric label="Kaufpreisfaktor" value={formatFactor(finance.purchaseFactor)} />
+          <ScenarioMetric
+            label="Score"
+            value={<ScoreBadge score={score.score} />}
+          />
+        </div>
+
+        <div className="space-y-2 rounded-lg bg-neutral-50 p-3 text-sm">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-neutral-500">
+              Max. sinnvoller Kaufpreis bei dieser Miete
+              {finance.bindingConstraint === "cashflow" && " (Cashflow-Grenze)"}
+              {finance.bindingConstraint === "rendite" && " (Rendite-Grenze)"}
+            </span>
+            <span className="font-semibold tabular-nums">
+              {formatEuro(finance.maxReasonablePrice)}
+            </span>
+          </div>
+          {priceDelta != null && (
+            <div className="flex items-center justify-between border-t pt-1.5">
+              <span className="text-neutral-500">ggü. Szenario-Preis</span>
+              <span
+                className={cn(
+                  "font-semibold tabular-nums",
+                  priceDelta >= 0 ? "text-green-700" : "text-red-600"
+                )}
+              >
+                {priceDelta >= 0 ? "+" : "−"}
+                {formatEuro(Math.abs(priceDelta))}
+              </span>
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-1.5">
+            <span className="text-neutral-500">
+              Nötige Kaltmiete für Cashflow ≥ {settings.min_cashflow} € bei diesem Kaufpreis
+            </span>
+            <span
+              className={cn(
+                "font-semibold tabular-nums",
+                rentMeetsTarget ? "text-green-700" : "text-amber-600"
+              )}
+            >
+              {formatEuroCents(requiredRentDisplay)}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" onClick={resetToActual} disabled={!isDirty}>
+            <RotateCcw className="size-4" /> Auf Ist-Werte zurücksetzen
+          </Button>
+          <Button
+            onClick={applyScenario}
+            disabled={!isDirty || update.isPending}
+            className="bg-green-700 hover:bg-green-800"
+          >
+            Als Objektwerte übernehmen
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ScenarioMetric({
+  label,
+  value,
+}: {
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border bg-white p-3">
+      <div className="text-xs text-neutral-500">{label}</div>
+      <div className="mt-1 text-base font-semibold tabular-nums">{value}</div>
     </div>
   );
 }

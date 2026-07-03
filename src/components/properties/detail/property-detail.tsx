@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
-import { ArrowLeft, ExternalLink, Sparkles, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil, Sparkles, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select";
 import { ScoreBadge } from "@/components/properties/badges";
 import { DiscardDialog } from "@/components/properties/discard-dialog";
+import { PropertyEditDialog } from "./property-edit-dialog";
 import { enrichProperty } from "@/lib/finance/enrich";
 import { useProperty, useUpdateProperty } from "@/lib/queries/properties";
 import { useMarketPrices, useSettings } from "@/lib/queries/settings";
@@ -40,6 +41,7 @@ export function PropertyDetail({ id }: { id: string }) {
   const { data: marketPrices } = useMarketPrices();
   const update = useUpdateProperty();
   const [discardOpen, setDiscardOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const enriched = useMemo(() => {
     if (!property || !settings) return null;
@@ -143,6 +145,9 @@ export function PropertyDetail({ id }: { id: string }) {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="size-4" /> Bearbeiten
+          </Button>
           {p.status !== "verworfen" && (
             <Button variant="outline" onClick={() => setDiscardOpen(true)}>
               <Trash2 className="size-4" /> Verwerfen
@@ -179,7 +184,11 @@ export function PropertyDetail({ id }: { id: string }) {
           <TabUebersicht enriched={enriched} />
         </TabsContent>
         <TabsContent value="finanzen" className="mt-4">
-          <TabFinanzen enriched={enriched} settings={settings} />
+          <TabFinanzen
+            enriched={enriched}
+            settings={settings}
+            marketPrices={marketPrices ?? []}
+          />
         </TabsContent>
         <TabsContent value="kontakt" className="mt-4">
           <TabKontakt property={p} />
@@ -208,6 +217,7 @@ export function PropertyDetail({ id }: { id: string }) {
       </Tabs>
 
       <DiscardDialog property={p} open={discardOpen} onOpenChange={setDiscardOpen} />
+      <PropertyEditDialog property={p} open={editOpen} onOpenChange={setEditOpen} />
     </>
   );
 }

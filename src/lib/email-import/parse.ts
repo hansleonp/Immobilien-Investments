@@ -46,6 +46,7 @@ function isTrackingParam(key: string): boolean {
   return (
     /^utm_/.test(k) ||
     /^wt_/.test(k) || // Webtrekk (u. a. ImmoScout24)
+    /^adj_/.test(k) || // Adjust (u. a. Immowelt: adj_t)
     ["ref", "cid", "pid", "gclid", "fbclid", "mc_cid", "mc_eid", "extid"].includes(k)
   );
 }

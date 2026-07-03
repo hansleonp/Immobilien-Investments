@@ -79,11 +79,16 @@ describe("unwrapTrackingUrl / Tracking-Links", () => {
     expect(links[0].title).toContain("3-Zimmer");
   });
 
-  it("entfernt PID- und wt_-Tracking-Parameter", () => {
+  it("entfernt PID-, wt_- und adj_-Tracking-Parameter", () => {
     const n = normalizeListingUrl(
-      "https://www.immobilienscout24.de/expose/167591199?PID=abc&wt_mc=xyz&foo=1"
+      "https://www.immobilienscout24.de/expose/167591199?PID=abc&wt_mc=xyz&adj_t=q&foo=1"
     );
     expect(n).toBe("https://www.immobilienscout24.de/expose/167591199?foo=1");
+  });
+
+  it("adj_t (Immowelt) fällt weg → Varianten deduplizieren zur selben URL", () => {
+    const base = "https://www.immowelt.de/expose/a18fca0e-9e53-4284-9020-5175ae5c8e9e";
+    expect(normalizeListingUrl(base + "?adj_t=1x281xib_1xhaji93")).toBe(base);
   });
 });
 

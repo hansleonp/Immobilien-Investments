@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bestListingTitle,
   extractAllLinks,
   extractListingLinks,
   extractListingMeta,
@@ -10,6 +11,43 @@ import {
   toListingUrl,
   unwrapTrackingUrl,
 } from "./parse";
+
+describe("Immowelt-Mail: Meta aus Tracker-Container + Titel-Auswahl", () => {
+  // Nachbau einer Immowelt-Karte: mehrere <a> auf denselben Klick-Tracker,
+  // Eckdaten/Ort/Titel als getrennte Link-Texte, PLZ in Klammern.
+  const CLICK = "https://click.by.immowelt.de/?qs=TOKEN123";
+  const CARD = `
+    <table><tr><td>
+      <a href="${CLICK}">195.000 € 2.868 €/m²</a>
+      <a href="${CLICK}">Bezugsfreie 2-Zimmer-Eigentumswohnung mit Sonnenloggia</a>
+      <a href="${CLICK}">2 Zimmer · 68 m²</a>
+      <a href="${CLICK}">Brüser Berg, Bonn / Brüser Berg (53125)</a>
+      <a href="${CLICK}">Mehr Informationen</a>
+    </td></tr></table>`;
+
+  it("extractListingMeta liest Preis/Fläche/Zimmer/Ort aus dem Tracker-Container", () => {
+    const meta = extractListingMeta(CARD, CLICK);
+    expect(meta.price).toBe(195000);
+    expect(meta.livingArea).toBe(68);
+    expect(meta.rooms).toBe(2);
+    expect(meta.city).toBe("Bonn");
+  });
+
+  it("bestListingTitle wählt den beschreibenden Titel (nicht Preis/Eckdaten/Ort)", () => {
+    const titles = [
+      "195.000 € 2.868 €/m²",
+      "Bezugsfreie 2-Zimmer-Eigentumswohnung mit Sonnenloggia",
+      "2 Zimmer · 68 m²",
+      "Brüser Berg, Bonn / Brüser Berg (53125)",
+      "Mehr Informationen",
+    ];
+    expect(bestListingTitle(titles)).toBe(
+      "Bezugsfreie 2-Zimmer-Eigentumswohnung mit Sonnenloggia"
+    );
+    // Floskeln kommen bereits als null an (titleCandidate); reine Preise fallen raus
+    expect(bestListingTitle(["189.000 €", null])).toBeNull();
+  });
+});
 
 describe("Klick-Tracker ohne eingebettete Ziel-URL (Netzwerk-Auflösung nötig)", () => {
   const CLICK = "https://click.by.immowelt.de/?qs=ABB7InYiOjEsImQiOjQ5MjZ9ADMxyz";

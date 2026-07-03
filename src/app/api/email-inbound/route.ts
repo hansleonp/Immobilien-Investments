@@ -9,6 +9,7 @@
 import { timingSafeEqual, createHash } from "node:crypto";
 
 import {
+  bestListingTitle,
   extractAllLinks,
   extractListingMeta,
   isListingUrl,
@@ -16,50 +17,75 @@ import {
   normalizeListingUrl,
   parseInboundPayload,
   toListingUrl,
-  type ExtractedLink,
+  type ListingMeta,
 } from "@/lib/email-import/parse";
 import { resolveListingUrl } from "@/lib/email-import/resolve";
 import { detectSource, extractExternalId } from "@/lib/link-import/sources";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { ImportInboxInsert, Json } from "@/types/database";
 
+interface CollectedLink {
+  /** normalisierte, endgültige Inserats-URL */
+  url: string;
+  /** bester Titel aus allen Link-Texten dieses Inserats */
+  title: string | null;
+  /** ein im HTML tatsächlich vorhandener href (Tracker oder direkt) → für Meta */
+  rawUrl: string;
+}
+
 /**
  * Ermittelt alle Inserats-Links einer Mail: erst synchron (direkte + im
  * Tracking-Link eingebettete URLs), dann per Netzwerk-Redirect für opake
- * Portal-Klick-Tracker (z. B. click.by.immowelt.de). Ergebnis normalisiert
- * und dedupliziert, bester Titel gewinnt.
+ * Portal-Klick-Tracker (z. B. click.by.immowelt.de). Mehrere Links zum selben
+ * Inserat werden gruppiert; pro Treffer bleiben der beste Titel und ein roher
+ * href (für die Meta-Extraktion aus dem umgebenden HTML-Container) erhalten.
  */
-async function collectListingLinks(html: string, text: string): Promise<ExtractedLink[]> {
-  const direct: ExtractedLink[] = [];
-  const trackers: ExtractedLink[] = [];
-  for (const link of extractAllLinks(html, text)) {
+async function collectListingLinks(html: string, text: string): Promise<CollectedLink[]> {
+  const raw = extractAllLinks(html, text);
+  const trackers: typeof raw = [];
+  // finalUrl → { rawUrl, titles[] }
+  const groups = new Map<string, { rawUrl: string; titles: Array<string | null> }>();
+
+  const addToGroup = (finalUrl: string, rawUrl: string, title: string | null): void => {
+    const normalized = normalizeListingUrl(finalUrl);
+    if (!normalized) return;
+    try {
+      if (!isListingUrl(new URL(normalized))) return;
+    } catch {
+      return;
+    }
+    const group = groups.get(normalized) ?? { rawUrl, titles: [] };
+    group.titles.push(title);
+    groups.set(normalized, group);
+  };
+
+  for (const link of raw) {
     const listing = toListingUrl(link.url);
-    if (listing) direct.push({ url: listing, title: link.title });
+    if (listing) addToGroup(listing, link.url, link.title);
     else if (isPortalHost(link.url)) trackers.push(link);
   }
 
   const resolved = await Promise.all(
-    trackers.map(async (link) => {
-      const url = await resolveListingUrl(link.url);
-      return url ? { url, title: link.title } : null;
-    })
+    trackers.map(async (link) => ({ link, url: await resolveListingUrl(link.url) }))
   );
-
-  const found = new Map<string, string | null>();
-  for (const link of [...direct, ...resolved]) {
-    if (!link) continue;
-    const normalized = normalizeListingUrl(link.url);
-    if (!normalized) continue;
-    try {
-      if (!isListingUrl(new URL(normalized))) continue;
-    } catch {
-      continue;
-    }
-    const existing = found.get(normalized);
-    if (existing === undefined) found.set(normalized, link.title);
-    else if (existing === null && link.title) found.set(normalized, link.title);
+  for (const { link, url } of resolved) {
+    if (url) addToGroup(url, link.url, link.title);
   }
-  return [...found.entries()].map(([url, title]) => ({ url, title }));
+
+  return [...groups.entries()].map(([url, group]) => ({
+    url,
+    title: bestListingTitle(group.titles),
+    rawUrl: group.rawUrl,
+  }));
+}
+
+/** Fallback-Kurzbeschreibung aus den Eckdaten, wenn kein Titel vorliegt */
+function composeExcerpt(meta: ListingMeta): string | null {
+  const parts: string[] = [];
+  if (meta.rooms != null) parts.push(`${meta.rooms} Zimmer`);
+  if (meta.livingArea != null) parts.push(`${meta.livingArea} m²`);
+  if (meta.city) parts.push(meta.city);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 /** Timing-sicherer Vergleich über SHA-256-Hashes (gleiche Länge garantiert) */
@@ -150,14 +176,16 @@ export async function POST(request: Request) {
       continue;
     }
 
-    const meta = extractListingMeta(mail.html, link.url);
+    // Meta aus dem HTML-Container des ROHEN href ziehen (die aufgelöste URL
+    // steht nicht im HTML) — liefert Preis/Fläche/Zimmer/Ort.
+    const meta = extractListingMeta(mail.html, link.rawUrl);
     const insert: ImportInboxInsert = {
       user_id: userId,
       source,
       source_url: link.url,
       external_id: externalId,
       subject: mail.subject || null,
-      excerpt: link.title ?? (mail.subject || null),
+      excerpt: link.title ?? composeExcerpt(meta) ?? (mail.subject || null),
       parsed: meta as Json,
       status: "neu",
     };

@@ -282,14 +282,35 @@ function metaFromText(text: string): ListingMeta {
     if (rooms != null && rooms > 0) meta.rooms = rooms;
   }
 
-  const zipCityMatch = text.match(
+  // Format A (ImmoScout24 u. a.): "53604 Bad Honnef" — PLZ vor Ort
+  const zipFirst = text.match(
     /\b\d{5}\s+([A-ZÄÖÜ][a-zäöüß.-]+(?:\s+(?:am|an der|bei)\s+\w+|\s+[A-ZÄÖÜ][a-zäöüß.-]+)?)/
   );
-  if (zipCityMatch) {
-    meta.city = zipCityMatch[1].trim();
-  }
+  // Format B (Immowelt): "Stadtteil, Stadt / … (53125)" — Ort vor PLZ in Klammern.
+  // Die Stadt ist der Teil nach dem Komma, vor optionalem " / …" und der PLZ.
+  const parenZip = text.match(
+    /,\s*([A-ZÄÖÜ][A-Za-zäöüß .-]+?)(?:\s*\/[^(]*)?\s*\(\d{5}\)/
+  );
+  if (zipFirst) meta.city = zipFirst[1].trim();
+  else if (parenZip) meta.city = parenZip[1].trim();
 
   return meta;
+}
+
+/**
+ * Wählt aus den Link-Texten eines Inserats (mehrere <a> zeigen auf denselben
+ * Treffer) den beschreibenden Titel: der längste Text, der weder reiner Preis
+ * noch Eckdaten- oder Ortsangabe ist. Liefert null, wenn keiner taugt.
+ */
+export function bestListingTitle(titles: Array<string | null>): string | null {
+  const candidates = titles
+    .map((t) => (t ?? "").trim())
+    .filter((t) => t.length >= 4)
+    .filter((t) => !/€|\bEUR\b/.test(t)) // kein Preis
+    .filter((t) => !/^\d+(?:[.,]\d)?\s*(?:zi\.?|zimmer|·|m²)/i.test(t)) // keine Eckdaten
+    .filter((t) => !/\(\d{5}\)/.test(t)); // keine Ortszeile
+  if (candidates.length === 0) return null;
+  return candidates.sort((a, b) => b.length - a.length)[0];
 }
 
 /**

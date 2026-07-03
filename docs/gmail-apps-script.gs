@@ -67,3 +67,43 @@ function immoFinderSync() {
     if (ok) thread.addLabel(label);
   }
 }
+
+/**
+ * EINMALIG ausführen nach einem Verbesserungs-Update der Link-Erkennung:
+ * schickt ALLE Portal-Mails der letzten 30 Tage erneut an den Webhook —
+ * auch bereits als "verarbeitet" markierte. So werden z. B. Immowelt-Treffer,
+ * deren Tracking-Links früher nicht entpackt wurden, nachträglich korrekt
+ * eingelesen. Dubletten sind unkritisch (Webhook dedupliziert per source_url).
+ * Danach übernimmt wieder der 15-Min-Trigger auf immoFinderSync.
+ */
+function immoFinderReprocess() {
+  const query =
+    "newer_than:30d " +
+    "(from:immowelt.de OR from:immobilienscout24.de OR " +
+    "from:kleinanzeigen.de OR from:immonet.de)";
+  const threads = GmailApp.search(query, 0, 100);
+  Logger.log("Reprocess — gefundene Threads: " + threads.length);
+
+  for (const thread of threads) {
+    for (const msg of thread.getMessages()) {
+      try {
+        const res = UrlFetchApp.fetch(WEBHOOK_URL, {
+          method: "post",
+          contentType: "application/json",
+          payload: JSON.stringify({
+            subject: msg.getSubject(),
+            html: msg.getBody(),
+            text: msg.getPlainBody(),
+          }),
+          muteHttpExceptions: true,
+        });
+        if (res.getResponseCode() >= 300) {
+          Logger.log("Webhook-Fehler " + res.getResponseCode() + ": " + res.getContentText());
+        }
+      } catch (e) {
+        Logger.log("Fehler: " + e);
+      }
+    }
+  }
+  Logger.log("Reprocess fertig.");
+}

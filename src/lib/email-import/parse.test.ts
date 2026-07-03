@@ -5,7 +5,48 @@ import {
   extractListingMeta,
   normalizeListingUrl,
   parseInboundPayload,
+  unwrapTrackingUrl,
 } from "./parse";
+
+describe("unwrapTrackingUrl / Tracking-Links", () => {
+  it("entpackt eine als Query-Param eingebettete Immowelt-URL", () => {
+    const tracked =
+      "https://links.immowelt.de/c/123?url=" +
+      encodeURIComponent("https://www.immowelt.de/expose/2c8f4a1b");
+    expect(unwrapTrackingUrl(tracked)).toBe("https://www.immowelt.de/expose/2c8f4a1b");
+  });
+
+  it("entpackt eine im Pfad URL-codierte ImmoScout24-URL", () => {
+    const tracked =
+      "https://email.immobilienscout24.de/r/" +
+      encodeURIComponent("https://www.immobilienscout24.de/expose/167591199");
+    expect(unwrapTrackingUrl(tracked)).toBe(
+      "https://www.immobilienscout24.de/expose/167591199"
+    );
+  });
+
+  it("liefert null für Tracking-Links ohne eingebettetes Inserat", () => {
+    expect(unwrapTrackingUrl("https://links.immowelt.de/c/abc/def")).toBeNull();
+  });
+
+  it("extractListingLinks findet die verpackte Inserats-URL", () => {
+    const html =
+      '<a href="https://links.immowelt.de/c/9?url=' +
+      encodeURIComponent("https://www.immowelt.de/expose/aa11bb22") +
+      '">Schöne 3-Zimmer-Wohnung in Bad Honnef</a>';
+    const links = extractListingLinks(html, "");
+    expect(links).toHaveLength(1);
+    expect(links[0].url).toBe("https://www.immowelt.de/expose/aa11bb22");
+    expect(links[0].title).toContain("3-Zimmer");
+  });
+
+  it("entfernt PID- und wt_-Tracking-Parameter", () => {
+    const n = normalizeListingUrl(
+      "https://www.immobilienscout24.de/expose/167591199?PID=abc&wt_mc=xyz&foo=1"
+    );
+    expect(n).toBe("https://www.immobilienscout24.de/expose/167591199?foo=1");
+  });
+});
 
 describe("parseInboundPayload", () => {
   it("erkennt das Postmark-Format", () => {

@@ -42,7 +42,61 @@ export function parseInboundPayload(body: unknown): InboundEmail | null {
 
 /** Query-Params, die reine Tracking-Parameter sind und entfernt werden */
 function isTrackingParam(key: string): boolean {
-  return /^utm_/i.test(key) || key === "ref" || key === "cid";
+  const k = key.toLowerCase();
+  return (
+    /^utm_/.test(k) ||
+    /^wt_/.test(k) || // Webtrekk (u. a. ImmoScout24)
+    ["ref", "cid", "pid", "gclid", "fbclid", "mc_cid", "mc_eid", "extid"].includes(k)
+  );
+}
+
+/**
+ * Portal-Suchagenten-Mails verpacken Inserats-Links oft in Klick-Tracking-URLs
+ * (z. B. links.immowelt.de/… oder email.immobilienscout24.de/…). Die echte
+ * Inserats-URL steckt dann meist als (URL-codierter) Parameter oder Pfadteil
+ * darin. Diese Funktion versucht, sie herauszulösen; liefert null, wenn keine
+ * eingebettete Inserats-URL gefunden wird.
+ */
+export function unwrapTrackingUrl(rawUrl: string): string | null {
+  const candidates: string[] = [];
+
+  // 1) Werte aller Query-Parameter als mögliche Ziel-URL
+  try {
+    for (const value of new URL(rawUrl).searchParams.values()) candidates.push(value);
+  } catch {
+    // keine parsebare URL → nur der String-Scan unten
+  }
+
+  // 2) Ganze URL ein-/zweifach dekodieren und nach eingebetteter Portal-URL suchen
+  let decoded = rawUrl;
+  for (let i = 0; i < 2; i++) {
+    try {
+      decoded = decodeURIComponent(decoded);
+    } catch {
+      break;
+    }
+  }
+  // An jeder http(s)://-Grenze auftrennen, damit verschachtelte Links
+  // (Tracker-URL enthält die Ziel-URL im Pfad) einzeln geprüft werden.
+  for (const part of decoded.split(/(?=https?:\/\/)/i)) {
+    const m = part.match(/^https?:\/\/[^\s"'<>]+/i);
+    if (m) candidates.push(m[0]);
+  }
+
+  for (const candidate of candidates) {
+    let dec = candidate;
+    try {
+      dec = decodeURIComponent(candidate);
+    } catch {
+      // schon dekodiert / ungültig — Rohwert weiterverwenden
+    }
+    try {
+      if (isListingUrl(new URL(dec))) return dec;
+    } catch {
+      // kein gültiger URL-Kandidat
+    }
+  }
+  return null;
 }
 
 /** Prüft, ob eine URL wie ein Inserats-Link aussieht (nicht Startseite/Abmelden etc.) */
@@ -113,7 +167,25 @@ export function extractListingLinks(html: string, text: string): ExtractedLink[]
   const found = new Map<string, string | null>();
 
   const add = (rawUrl: string, title: string | null): void => {
-    const normalized = normalizeListingUrl(rawUrl);
+    // Direkter Inserats-Link? Sonst versuchen, aus einem Tracking-Link die
+    // eingebettete Inserats-URL zu entpacken.
+    let listingRaw = rawUrl;
+    const directNorm = normalizeListingUrl(rawUrl);
+    let isDirect = false;
+    if (directNorm) {
+      try {
+        isDirect = isListingUrl(new URL(directNorm));
+      } catch {
+        isDirect = false;
+      }
+    }
+    if (!isDirect) {
+      const unwrapped = unwrapTrackingUrl(rawUrl);
+      if (!unwrapped) return;
+      listingRaw = unwrapped;
+    }
+
+    const normalized = normalizeListingUrl(listingRaw);
     if (!normalized) return;
     let u: URL;
     try {

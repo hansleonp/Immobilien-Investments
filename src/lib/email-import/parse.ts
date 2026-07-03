@@ -141,7 +141,7 @@ export function normalizeListingUrl(url: string): string | null {
 
 /** Floskeln, die als Link-Text keinen Titel hergeben */
 const BORING_LINK_TEXT =
-  /^(hier( klicken)?|klicke?n? sie hier|jetzt ansehen|ansehen|anzeigen|zum (inserat|angebot|exposé|expose)|zur anzeige|mehr( erfahren)?|details?|weiter|link|öffnen)\W*$/i;
+  /^(hier( klicken)?|klicke?n? sie hier|jetzt ansehen|ansehen|anzeigen|zum (inserat|angebot|exposé|expose|objekt)|zur (anzeige|immobilie)|mehr( erfahren| informationen| infos| dazu)?|details?|weiter|link|öffnen)\W*$/i;
 
 /** Link-Text als Titel-Kandidat: getrimmt, max 200 Zeichen, keine Floskel/URL */
 function titleCandidate(raw: string): string | null {

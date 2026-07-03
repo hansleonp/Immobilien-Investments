@@ -83,6 +83,11 @@ describe("Klick-Tracker ohne eingebettete Ziel-URL (Netzwerk-Auflösung nötig)"
     // Der Listings-Only-Extractor lässt den opaken Tracker (korrekt) fallen
     expect(extractListingLinks(html, "")).toEqual([]);
   });
+
+  it("„Mehr Informationen“ zählt als Floskel und wird kein Titel", () => {
+    const all = extractAllLinks(`<a href="${CLICK}">Mehr Informationen</a>`, "");
+    expect(all[0].title).toBeNull();
+  });
 });
 
 describe("unwrapTrackingUrl / Tracking-Links", () => {

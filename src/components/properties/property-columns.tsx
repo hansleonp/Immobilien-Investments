@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { createColumnHelper } from "@tanstack/react-table";
 import { ExternalLink, Star } from "lucide-react";
-import { CashflowValue, ScoreBadge, StatusBadge, AnswerStatusBadge } from "./badges";
+import { CashflowValue, LocationBadge, ScoreBadge, StatusBadge, AnswerStatusBadge } from "./badges";
 import { PropertyRowActions } from "./property-row-actions";
 import { formatDate, formatEuro, formatFactor, formatNumber, formatPercent, formatSqm } from "@/lib/format";
 import { isOverdue, lastContactEvent, nextOpenTask, nextPlannedViewing, wasContacted } from "@/lib/derive";
@@ -20,6 +20,7 @@ import type { EnrichedProperty } from "@/types";
 export const COLUMN_LABELS: Record<string, string> = {
   objekt: "Einheit / Adresse",
   ort: "Ort",
+  lage: "Lage",
   etage: "Etage",
   baujahr: "Baujahr",
   zustand: "Zustand",
@@ -71,6 +72,12 @@ export const propertyColumns = [
     id: "ort",
     header: "Ort",
     cell: (info) => info.getValue() || "—",
+  }),
+  col.accessor((r) => r.locationClass, {
+    id: "lage",
+    header: "Lage",
+    cell: (info) => <LocationBadge cls={info.getValue()} />,
+    sortUndefined: "last",
   }),
   col.accessor((r) => r.property.floor, {
     id: "etage",

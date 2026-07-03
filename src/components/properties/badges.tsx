@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import {
   ANSWER_STATUS_META,
+  LOCATION_CLASS_META,
   PRIORITY_META,
   scoreBand,
   STATUS_META,
@@ -9,6 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 import type {
   AnswerStatus,
+  LocationClass,
   PropertyStatus,
   TaskPriority,
   ViewingStatus,
@@ -32,6 +34,16 @@ export function PriorityBadge({ priority }: { priority: TaskPriority }) {
 export function ViewingStatusBadge({ status }: { status: ViewingStatus }) {
   const meta = VIEWING_STATUS_META[status];
   return <Badge className={cn("border-transparent", meta.badge)}>{meta.label}</Badge>;
+}
+
+export function LocationBadge({ cls }: { cls: LocationClass | null }) {
+  if (cls == null) return <span className="text-neutral-300">—</span>;
+  const meta = LOCATION_CLASS_META[cls];
+  return (
+    <Badge className={cn("border-transparent", meta.badge)} title={meta.hint}>
+      {meta.label}
+    </Badge>
+  );
 }
 
 /** Score als farbiger Ring (wie in der Referenz-UI) */

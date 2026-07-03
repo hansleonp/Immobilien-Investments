@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,7 +32,11 @@ import {
   useMarketPrices,
   useSaveMarketPrice,
 } from "@/lib/queries/settings";
-import type { MarketPriceRow } from "@/types/database";
+import { LOCATION_CLASSES, LOCATION_CLASS_META } from "@/lib/constants";
+import type { LocationClass, MarketPriceRow } from "@/types/database";
+
+/** Sentinel-Wert für „keine Lage" — Base-UI-Select mag keine leeren string-Values */
+const NO_CLASS = "__none__";
 
 function PriceRow({ row }: { row: MarketPriceRow }) {
   const save = useSaveMarketPrice();
@@ -49,6 +60,22 @@ function PriceRow({ row }: { row: MarketPriceRow }) {
         city: row.city,
         price_per_sqm: priceNum,
         rent_per_sqm: rent === "" ? null : Number(rent),
+        location_class: row.location_class,
+      },
+      { onSuccess: () => toast.success(`${row.city} aktualisiert`) }
+    );
+  }
+
+  function handleLocationChange(value: string | null) {
+    const next = value == null || value === NO_CLASS ? null : (value as LocationClass);
+    if (next === row.location_class) return;
+    save.mutate(
+      {
+        id: row.id,
+        city: row.city,
+        price_per_sqm: row.price_per_sqm,
+        rent_per_sqm: row.rent_per_sqm,
+        location_class: next,
       },
       { onSuccess: () => toast.success(`${row.city} aktualisiert`) }
     );
@@ -75,6 +102,24 @@ function PriceRow({ row }: { row: MarketPriceRow }) {
           onChange={(e) => setRent(e.target.value)}
           className="h-8 w-24"
         />
+      </TableCell>
+      <TableCell>
+        <Select
+          value={row.location_class ?? NO_CLASS}
+          onValueChange={handleLocationChange}
+        >
+          <SelectTrigger size="sm" className="w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={NO_CLASS}>–</SelectItem>
+            {LOCATION_CLASSES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {LOCATION_CLASS_META[c].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-1">
@@ -107,6 +152,7 @@ export function MarketPricesCard() {
   const [newCity, setNewCity] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newRent, setNewRent] = useState("");
+  const [newClass, setNewClass] = useState<string>(NO_CLASS);
 
   function handleAdd() {
     const priceNum = Number(newPrice);
@@ -119,6 +165,7 @@ export function MarketPricesCard() {
         city: newCity.trim(),
         price_per_sqm: priceNum,
         rent_per_sqm: newRent === "" ? null : Number(newRent),
+        location_class: newClass === NO_CLASS ? null : (newClass as LocationClass),
       },
       {
         onSuccess: () => {
@@ -126,6 +173,7 @@ export function MarketPricesCard() {
           setNewCity("");
           setNewPrice("");
           setNewRent("");
+          setNewClass(NO_CLASS);
         },
         onError: (e) =>
           toast.error(
@@ -153,13 +201,14 @@ export function MarketPricesCard() {
               <TableHead>Stadt</TableHead>
               <TableHead>Kaufpreis €/m²</TableHead>
               <TableHead>Kaltmiete €/m²</TableHead>
+              <TableHead>Lage</TableHead>
               <TableHead />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-neutral-400">
+                <TableCell colSpan={5} className="text-center text-neutral-400">
                   Lade…
                 </TableCell>
               </TableRow>
@@ -193,6 +242,24 @@ export function MarketPricesCard() {
                   onChange={(e) => setNewRent(e.target.value)}
                   className="h-8 w-24"
                 />
+              </TableCell>
+              <TableCell>
+                <Select
+                  value={newClass}
+                  onValueChange={(v) => setNewClass(v ?? NO_CLASS)}
+                >
+                  <SelectTrigger size="sm" className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NO_CLASS}>–</SelectItem>
+                    {LOCATION_CLASSES.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {LOCATION_CLASS_META[c].label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </TableCell>
               <TableCell className="text-right">
                 <Button size="sm" variant="outline" onClick={handleAdd} disabled={save.isPending}>

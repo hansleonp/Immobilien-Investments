@@ -28,5 +28,5 @@ export function enrichProperty(
     marketPricePerSqm: marketRef?.price_per_sqm ?? null,
     assumptions: resolveAssumptions(property, settings),
   });
-  return { property, finance, score };
+  return { property, finance, score, locationClass: marketRef?.location_class ?? null };
 }

@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@/lib/supabase/client";
-import type { MarketPriceRow, SettingsRow } from "@/types/database";
+import type { LocationClass, MarketPriceRow, SettingsRow } from "@/types/database";
 
 /** Startwerte für die Marktpreis-Referenz — vom User in den Einstellungen pflegbar */
-const MARKET_PRICE_SEED = [
-  { city: "Bad Honnef", price_per_sqm: 3400, rent_per_sqm: 11.5 },
-  { city: "Königswinter", price_per_sqm: 3100, rent_per_sqm: 10.5 },
-  { city: "Bonn", price_per_sqm: 3800, rent_per_sqm: 12.5 },
+const MARKET_PRICE_SEED: {
+  city: string;
+  price_per_sqm: number;
+  rent_per_sqm: number;
+  location_class: LocationClass;
+}[] = [
+  { city: "Bad Honnef", price_per_sqm: 3400, rent_per_sqm: 11.5, location_class: "D" },
+  { city: "Königswinter", price_per_sqm: 3100, rent_per_sqm: 10.5, location_class: "D" },
+  { city: "Bonn", price_per_sqm: 3800, rent_per_sqm: 12.5, location_class: "B" },
 ];
 
 export function useSettings() {
@@ -77,6 +82,7 @@ export function useSaveMarketPrice() {
       city: string;
       price_per_sqm: number;
       rent_per_sqm: number | null;
+      location_class?: LocationClass | null;
     }) => {
       const supabase = createClient();
       if (values.id) {
@@ -86,6 +92,7 @@ export function useSaveMarketPrice() {
             city: values.city,
             price_per_sqm: values.price_per_sqm,
             rent_per_sqm: values.rent_per_sqm,
+            location_class: values.location_class ?? null,
           })
           .eq("id", values.id);
         if (error) throw error;
@@ -94,6 +101,7 @@ export function useSaveMarketPrice() {
           city: values.city,
           price_per_sqm: values.price_per_sqm,
           rent_per_sqm: values.rent_per_sqm,
+          location_class: values.location_class ?? null,
         });
         if (error) throw error;
       }

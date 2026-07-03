@@ -3,6 +3,7 @@ import type {
   ContactType,
   DiscardReason,
   DocumentCategory,
+  LocationClass,
   PropertyCondition,
   PropertySource,
   PropertyStatus,
@@ -31,6 +32,27 @@ export const STATUS_META: Record<PropertyStatus, { label: string; badge: string 
 };
 
 export const PROPERTY_STATUSES = Object.keys(STATUS_META) as PropertyStatus[];
+
+/** Lage-Einstufung nach bulwiengesa-Städtesystem (A/B/C/D) */
+export const LOCATION_CLASS_META: Record<
+  LocationClass,
+  { label: string; badge: string; hint: string }
+> = {
+  A: { label: "A-Lage", badge: "bg-emerald-100 text-emerald-800", hint: "Top-Metropole" },
+  B: {
+    label: "B-Lage",
+    badge: "bg-blue-100 text-blue-800",
+    hint: "Großstadt, national/regional bedeutend",
+  },
+  C: { label: "C-Lage", badge: "bg-amber-100 text-amber-800", hint: "wichtiges Regionalzentrum" },
+  D: {
+    label: "D-Lage",
+    badge: "bg-neutral-200 text-neutral-700",
+    hint: "kleinere Stadt, regionale Funktion",
+  },
+};
+
+export const LOCATION_CLASSES: LocationClass[] = ["A", "B", "C", "D"];
 
 /** Status, die ein Objekt aus der aktiven Suche nehmen */
 export const INACTIVE_STATUSES: PropertyStatus[] = ["verworfen", "abgelehnt", "gekauft"];

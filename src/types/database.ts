@@ -96,6 +96,8 @@ export type DocumentCategory =
 
 export type InboxStatus = "neu" | "uebernommen" | "verworfen";
 
+export type LocationClass = "A" | "B" | "C" | "D";
+
 export type SettingsRow = {
   user_id: string;
   equity_percent: number;
@@ -118,6 +120,7 @@ export type MarketPriceRow = {
   city: string;
   price_per_sqm: number;
   rent_per_sqm: number | null;
+  location_class: LocationClass | null;
   note: string | null;
   created_at: string;
   updated_at: string;

@@ -4,6 +4,7 @@ import type {
   ContactEventRow,
   ContactRow,
   DocumentRow,
+  LocationClass,
   PropertyRow,
   TaskRow,
   ViewingRow,
@@ -23,4 +24,5 @@ export type EnrichedProperty = {
   property: PropertyWithRelations;
   finance: FinanceResult;
   score: ScoreResult;
+  locationClass: LocationClass | null;
 };

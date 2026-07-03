@@ -141,6 +141,8 @@ export type PropertyRow = {
   source_url: string | null;
   external_id: string | null;
   image_url: string | null;
+  /** Veröffentlichungs-/Inseratsdatum (YYYY-MM-DD) — Näherung, editierbar */
+  listed_at: string | null;
   property_type: string;
   price: number | null;
   living_area: number | null;

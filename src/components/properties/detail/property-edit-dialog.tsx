@@ -39,6 +39,7 @@ function num(v: unknown): number | null {
 /** Formularwerte: Text bleibt String, Zahlen kommen als string|number aus dem Input */
 interface EditFormValues {
   title: string;
+  listed_at: string;
   street: string;
   zip: string;
   city: string;
@@ -62,6 +63,7 @@ function defaultsFrom(p: PropertyRow): EditFormValues {
   const n = (v: number | null) => (v == null ? "" : v);
   return {
     title: p.title,
+    listed_at: str(p.listed_at),
     street: str(p.street),
     zip: str(p.zip),
     city: p.city,
@@ -111,6 +113,7 @@ export function PropertyEditDialog({
     const str = (v: string) => (v.trim() === "" ? null : v.trim());
     const editable: Partial<PropertyInsert> = {
       title,
+      listed_at: str(values.listed_at),
       street: str(values.street),
       zip: str(values.zip),
       city: values.city.trim() || property.city,
@@ -163,6 +166,9 @@ export function PropertyEditDialog({
                 <Input {...register("title")} placeholder="z. B. Whg. 2. OG links" />
               </Field>
             </div>
+            <Field label="Inseriert am">
+              <Input type="date" {...register("listed_at")} />
+            </Field>
             <Field label="Straße + Hausnummer">
               <Input {...register("street")} />
             </Field>

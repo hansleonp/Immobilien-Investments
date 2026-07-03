@@ -19,6 +19,7 @@ import type { EnrichedProperty } from "@/types";
 /** Deutsche Labels für das Spalten-Dropdown */
 export const COLUMN_LABELS: Record<string, string> = {
   objekt: "Einheit / Adresse",
+  inseriert: "Inseriert am",
   ort: "Ort",
   lage: "Lage",
   etage: "Etage",
@@ -73,6 +74,12 @@ export const propertyColumns = [
     id: "ort",
     header: "Ort",
     cell: (info) => info.getValue() || "—",
+  }),
+  col.accessor((r) => r.property.listed_at, {
+    id: "inseriert",
+    header: "Inseriert am",
+    cell: (info) => <span className="tabular-nums">{formatDate(info.getValue())}</span>,
+    sortUndefined: "last",
   }),
   col.accessor((r) => r.locationClass, {
     id: "lage",

@@ -85,6 +85,8 @@ function InboxItemCard({ item }: { item: ImportInboxRow }) {
       living_area: meta.livingArea,
       rooms: meta.rooms,
       city: meta.city,
+      // Maildatum des Suchagenten als Näherung fürs Inseratsdatum (YYYY-MM-DD)
+      listed_at: item.received_at ? item.received_at.slice(0, 10) : undefined,
     });
     const params = new URLSearchParams({ url: item.source_url });
     if (prefill) params.set("prefill", prefill);

@@ -162,17 +162,19 @@ function TextField({
   name,
   label,
   placeholder,
+  type,
 }: {
   name: keyof PropertyFormValues;
   label: string;
   placeholder?: string;
+  type?: string;
 }) {
   const { register, formState } = useFormContext<PropertyFormValues>();
   const error = formState.errors[name];
   return (
     <div className="space-y-1.5">
       <Label htmlFor={name}>{label}</Label>
-      <Input id={name} placeholder={placeholder} {...register(name)} />
+      <Input id={name} type={type} placeholder={placeholder} {...register(name)} />
       {error && <p className="text-xs text-red-600">{String(error.message)}</p>}
     </div>
   );
@@ -890,6 +892,7 @@ function WizardForm({
                 <NumField name="rooms" label="Zimmer" step="0.5" />
                 <TextField name="floor" label="Etage" placeholder="z. B. 2. OG" />
                 <NumField name="construction_year" label="Baujahr" step="1" />
+                <TextField name="listed_at" label="Inseriert am" type="date" />
                 <SelectField
                   name="condition"
                   label="Zustand"

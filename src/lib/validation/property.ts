@@ -46,6 +46,7 @@ export const propertyFormSchema = z.object({
 
   // Schritt 2: Basisdaten
   title: z.string().trim().min(1, "Bitte einen Titel angeben"),
+  listed_at: strOpt, // Inseriert am (YYYY-MM-DD), optional
   street: strOpt,
   zip: strOpt,
   city: z.string().trim().min(1, "Bitte einen Ort angeben"),
@@ -103,6 +104,7 @@ export function emptyPropertyForm(settings: SettingsRow): PropertyFormValues {
     source: "manuell",
     image_url: "",
     title: "",
+    listed_at: "",
     street: "",
     zip: "",
     city: "",
@@ -148,6 +150,7 @@ export function toPropertyInsert(
 
   return {
     title: values.title,
+    listed_at: values.listed_at,
     street: values.street,
     zip: values.zip,
     city: values.city,

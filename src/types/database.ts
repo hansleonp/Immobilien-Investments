@@ -178,7 +178,12 @@ export type PropertyRow = {
   ai_analysis: Json | null;
   purchase_checklist: Json;
   ai_analyzed_at: string | null;
+  /** Preis-Historie: Array von { date: 'YYYY-MM-DD', price: number } */
+  price_history: Json;
 }
+
+/** Eintrag in properties.price_history */
+export type PriceHistoryEntry = { date: string; price: number };
 
 export type ContactRow = {
   id: string;

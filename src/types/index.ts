@@ -27,4 +27,6 @@ export type EnrichedProperty = {
   locationClass: LocationClass | null;
   /** Referenz-Kaufpreis €/m² der Stadt (market_prices), für "vs. Markt" */
   marketPricePerSqm: number | null;
+  /** Referenz-Kaltmiete €/m² der Stadt (market_prices), für "Rendite (soll)" */
+  marketRentPerSqm: number | null;
 };

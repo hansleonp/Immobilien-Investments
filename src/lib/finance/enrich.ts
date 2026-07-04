@@ -34,5 +34,6 @@ export function enrichProperty(
     score,
     locationClass: marketRef?.location_class ?? null,
     marketPricePerSqm: marketRef?.price_per_sqm ?? null,
+    marketRentPerSqm: marketRef?.rent_per_sqm ?? null,
   };
 }

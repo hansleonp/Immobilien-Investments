@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CashflowValue } from "@/components/properties/badges";
+import { CashflowValue, MarketDeltaValue } from "@/components/properties/badges";
 import { nextOpenTask } from "@/lib/derive";
 import {
   CONDITION_META,
@@ -17,10 +17,39 @@ import {
   formatSqm,
 } from "@/lib/format";
 import type { EnrichedProperty } from "@/types";
+import type { PriceHistoryEntry } from "@/types/database";
+
+/** Tage seit dem Inseratsdatum (null ohne listed_at) */
+function daysOnline(listedAt: string | null): number | null {
+  if (!listedAt) return null;
+  const ms = Date.now() - new Date(listedAt).getTime();
+  return ms >= 0 ? Math.floor(ms / 86_400_000) : null;
+}
+
+/** Preis-Historie chronologisch, defensiv geparst (jsonb) */
+function priceHistory(raw: unknown): PriceHistoryEntry[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (e): e is PriceHistoryEntry =>
+      e != null && typeof e === "object" && typeof (e as PriceHistoryEntry).price === "number"
+  );
+}
 
 export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
-  const { property: p, finance } = enriched;
+  const { property: p, finance, marketRentPerSqm } = enriched;
   const nextTask = nextOpenTask(p);
+  const online = daysOnline(p.listed_at);
+  const history = priceHistory(p.price_history);
+
+  // Rendite (soll) à la ImmoMetrica: Marktmiete der Stadt statt Ist-Miete
+  const marketRent =
+    marketRentPerSqm != null && p.living_area != null
+      ? marketRentPerSqm * p.living_area
+      : null;
+  const targetYield =
+    marketRent != null && p.price != null && p.price > 0
+      ? ((12 * marketRent) / p.price) * 100
+      : null;
 
   const facts: Array<[string, string]> = [
     ["Kaufpreis", formatEuro(p.price)],
@@ -34,6 +63,12 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
     ["Quelle", SOURCE_META[p.source].label],
     ["€/m²", finance.pricePerSqm != null ? formatEuro(finance.pricePerSqm) : "—"],
     ["Hausgeld", formatEuro(p.hausgeld)],
+    [
+      "Inseriert am",
+      p.listed_at
+        ? `${formatDate(p.listed_at)}${online != null ? ` (${online} Tage online)` : ""}`
+        : "—",
+    ],
     ["Erfasst am", formatDate(p.created_at)],
   ];
 
@@ -74,9 +109,27 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
               </span>
               <span className="font-medium tabular-nums">{formatPercent(finance.effectiveYield)}</span>
             </div>
+            {targetYield != null && (
+              <div className="flex justify-between">
+                <span
+                  className="text-neutral-500"
+                  title={`bei Marktmiete ${formatEuro(marketRent)} / Monat (${formatNumber(marketRentPerSqm)} €/m² in ${p.city})`}
+                >
+                  Rendite (soll, Marktmiete)
+                </span>
+                <span className="font-medium tabular-nums">{formatPercent(targetYield)}</span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-neutral-500">Kaufpreisfaktor</span>
               <span className="font-medium tabular-nums">{formatFactor(finance.purchaseFactor)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-neutral-500">vs. Markt (€/m²)</span>
+              <MarketDeltaValue
+                pricePerSqm={finance.pricePerSqm}
+                marketPricePerSqm={enriched.marketPricePerSqm}
+              />
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-500">Cashflow (mtl.)</span>
@@ -108,6 +161,48 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
             )}
           </CardContent>
         </Card>
+
+        {(history.length > 0 || p.listed_at) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Historie</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ol className="space-y-2 text-sm">
+                {p.listed_at && (
+                  <li className="flex justify-between gap-2">
+                    <span className="text-neutral-500">
+                      {formatDate(p.listed_at)}
+                    </span>
+                    <span className="font-medium">Inseriert</span>
+                  </li>
+                )}
+                {history.map((entry, i) => {
+                  const prev = i > 0 ? history[i - 1].price : null;
+                  const delta = prev != null ? entry.price - prev : null;
+                  return (
+                    <li key={`${entry.date}-${i}`} className="flex justify-between gap-2">
+                      <span className="text-neutral-500">{formatDate(entry.date)}</span>
+                      <span className="text-right font-medium tabular-nums">
+                        {formatEuro(entry.price)}
+                        {delta != null && delta !== 0 && (
+                          <span
+                            className={
+                              delta < 0 ? "ml-1 text-green-700" : "ml-1 text-red-600"
+                            }
+                          >
+                            ({delta < 0 ? "▼" : "▲"}
+                            {Math.abs(Math.round((delta / (entry.price - delta)) * 100))} %)
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            </CardContent>
+          </Card>
+        )}
 
         {p.notes && (
           <Card>

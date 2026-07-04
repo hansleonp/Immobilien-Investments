@@ -26,7 +26,9 @@ import type {
   ImportInboxInsert,
   Json,
   MarketPriceRow,
+  PriceHistoryEntry,
   PropertyInsert,
+  PropertyRow,
 } from "@/types/database";
 
 interface CollectedLink {
@@ -172,32 +174,50 @@ export async function POST(request: Request) {
     const externalId = extractExternalId(link.url, source);
 
     // Dedup gegen bestehende Objekte: erst source+external_id, dann source_url
-    let isDuplicate = false;
-    if (externalId) {
-      const { data } = await admin
-        .from("properties")
-        .select("id")
-        .eq("source", source)
-        .eq("external_id", externalId)
-        .limit(1);
-      if (data && data.length > 0) isDuplicate = true;
-    }
-    if (!isDuplicate) {
-      const { data } = await admin
-        .from("properties")
-        .select("id")
-        .eq("source_url", link.url)
-        .limit(1);
-      if (data && data.length > 0) isDuplicate = true;
-    }
-    if (isDuplicate) {
-      skipped++;
-      continue;
-    }
-
     // Meta aus dem HTML-Container des ROHEN href ziehen (die aufgelöste URL
     // steht nicht im HTML) — liefert Preis/Fläche/Zimmer/Ort.
     const meta = extractListingMeta(mail.html, link.rawUrl);
+
+    type ExistingProperty = Pick<PropertyRow, "id" | "price" | "price_history">;
+    let existing: ExistingProperty | null = null;
+    if (externalId) {
+      const { data } = await admin
+        .from("properties")
+        .select("id, price, price_history")
+        .eq("source", source)
+        .eq("external_id", externalId)
+        .limit(1);
+      if (data && data.length > 0) existing = data[0];
+    }
+    if (!existing) {
+      const { data } = await admin
+        .from("properties")
+        .select("id, price, price_history")
+        .eq("source_url", link.url)
+        .limit(1);
+      if (data && data.length > 0) existing = data[0];
+    }
+    if (existing) {
+      // Dublette: meldet der Suchagent einen geänderten Preis, aktualisieren
+      // wir das Objekt und schreiben die Änderung in die Preis-Historie.
+      if (meta.price != null && existing.price !== meta.price) {
+        const history: PriceHistoryEntry[] = Array.isArray(existing.price_history)
+          ? (existing.price_history as PriceHistoryEntry[])
+          : [];
+        await admin
+          .from("properties")
+          .update({
+            price: meta.price,
+            price_history: [
+              ...history,
+              { date: new Date().toISOString().slice(0, 10), price: meta.price },
+            ] as Json,
+          })
+          .eq("id", existing.id);
+      }
+      skipped++;
+      continue;
+    }
     const insert: ImportInboxInsert = {
       user_id: userId,
       source,
@@ -247,6 +267,9 @@ export async function POST(request: Request) {
       rooms: meta.rooms ?? null,
       estimated_rent_cold: estimatedRent,
       listed_at: new Date().toISOString().slice(0, 10),
+      price_history: (meta.price != null
+        ? [{ date: new Date().toISOString().slice(0, 10), price: meta.price }]
+        : []) as Json,
     };
     const { data: prop, error: leadError } = await admin
       .from("properties")

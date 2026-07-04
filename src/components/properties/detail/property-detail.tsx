@@ -135,7 +135,8 @@ export function PropertyDetail({ id }: { id: string }) {
             }}
           >
             <SelectTrigger className="w-52">
-              <SelectValue />
+              {/* Base UI kennt die Item-Labels erst nach dem Öffnen → explizit setzen */}
+              <SelectValue>{STATUS_META[p.status].label}</SelectValue>
             </SelectTrigger>
             <SelectContent>
               {PROPERTY_STATUSES.map((s) => (

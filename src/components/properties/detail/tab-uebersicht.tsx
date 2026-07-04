@@ -66,7 +66,7 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
     [
       "Inseriert am",
       p.listed_at
-        ? `${formatDate(p.listed_at)}${online != null ? ` (${online} Tage online)` : ""}`
+        ? `${formatDate(p.listed_at)}${online != null ? ` (${online} ${online === 1 ? "Tag" : "Tage"} online)` : ""}`
         : "—",
     ],
     ["Erfasst am", formatDate(p.created_at)],

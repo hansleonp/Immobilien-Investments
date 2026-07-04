@@ -180,6 +180,8 @@ export type PropertyRow = {
   ai_analyzed_at: string | null;
   /** Preis-Historie: Array von { date: 'YYYY-MM-DD', price: number } */
   price_history: Json;
+  /** Gecachte Lage-Analyse (OSM): LocationScoresData aus lib/lage/score.ts */
+  location_scores: Json | null;
 }
 
 /** Eintrag in properties.price_history */

@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CashflowValue, MarketDeltaValue } from "@/components/properties/badges";
+import { LageCard } from "./lage-card";
 import { nextOpenTask } from "@/lib/derive";
 import {
   CONDITION_META,
@@ -161,6 +162,8 @@ export function TabUebersicht({ enriched }: { enriched: EnrichedProperty }) {
             )}
           </CardContent>
         </Card>
+
+        <LageCard property={p} />
 
         {(history.length > 0 || p.listed_at) && (
           <Card>

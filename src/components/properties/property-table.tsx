@@ -34,6 +34,7 @@ import { useProperties } from "@/lib/queries/properties";
 import { useMarketPrices, useSettings } from "@/lib/queries/settings";
 import { propertyColumns, COLUMN_LABELS } from "./property-columns";
 import { applyFilters, PropertyFilters, usePropertyFilters } from "./property-filters";
+import { ExportCsvButton } from "./export-csv";
 import type { EnrichedProperty } from "@/types";
 
 const COLUMNS_STORAGE_KEY = "immofinder-columns";
@@ -147,26 +148,29 @@ export function PropertyTable() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <PropertyFilters cityOptions={cityOptions} leadCount={leadCount} />
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
-            <Columns3 className="size-3.5" /> Spalten
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="max-h-80 min-w-52 overflow-y-auto">
-            <DropdownMenuLabel>Sichtbare Spalten</DropdownMenuLabel>
-            {table
-              .getAllLeafColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => (
-                <DropdownMenuCheckboxItem
-                  key={column.id}
-                  checked={column.getIsVisible()}
-                  onCheckedChange={(checked) => column.toggleVisibility(checked)}
-                >
-                  {COLUMN_LABELS[column.id] ?? column.id}
-                </DropdownMenuCheckboxItem>
-              ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <ExportCsvButton rows={rows} />
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+              <Columns3 className="size-3.5" /> Spalten
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="max-h-80 min-w-52 overflow-y-auto">
+              <DropdownMenuLabel>Sichtbare Spalten</DropdownMenuLabel>
+              {table
+                .getAllLeafColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(checked) => column.toggleVisibility(checked)}
+                  >
+                    {COLUMN_LABELS[column.id] ?? column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {rows.length === 0 ? (

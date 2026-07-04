@@ -35,6 +35,7 @@ import { useMarketPrices, useSettings } from "@/lib/queries/settings";
 import { propertyColumns, COLUMN_LABELS } from "./property-columns";
 import { applyFilters, PropertyFilters, usePropertyFilters } from "./property-filters";
 import { ExportCsvButton } from "./export-csv";
+import { ImportDialog } from "./import-dialog";
 import type { EnrichedProperty } from "@/types";
 
 const COLUMNS_STORAGE_KEY = "immofinder-columns";
@@ -149,6 +150,7 @@ export function PropertyTable() {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <PropertyFilters cityOptions={cityOptions} leadCount={leadCount} />
         <div className="flex items-center gap-2">
+          <ImportDialog />
           <ExportCsvButton rows={rows} />
           <DropdownMenu>
             <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>

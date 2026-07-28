@@ -389,3 +389,21 @@ a { color: var(--primary); text-decoration: none; }
   font-size: 22px; line-height: 1; padding: 4px; color: #eab308;
 }
 .starbtn:active { transform: scale(0.9); }
+
+/* Immobilien: mobil Karten, Desktop Tabelle */
+.prop-table-wrap { display: none; }
+.prop-cards { display: block; }
+@media (min-width: 820px) {
+  .content.wide { max-width: 1180px; }
+  .prop-cards { display: none; }
+  .prop-table-wrap { display: block; overflow-x: auto; border: 1px solid var(--hairline); border-radius: var(--r-md); background: var(--card, #fff); }
+  .prop-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .prop-table th, .prop-table td { padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--divider-soft); white-space: nowrap; }
+  .prop-table thead th { position: sticky; top: 0; background: var(--pearl); font-weight: 600; color: var(--ink-muted-80); z-index: 1; }
+  .prop-table td.num, .prop-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .prop-table tbody tr { cursor: pointer; }
+  .prop-table tbody tr:hover { background: var(--divider-soft); }
+  .prop-table tbody tr:last-child td { border-bottom: none; }
+  .prop-table td.note { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted-80); }
+  .prop-table .starbtn { font-size: 18px; padding: 0; }
+}

@@ -151,3 +151,43 @@ export interface DocDef {
 }
 
 export const DOC_STATUS = ["nicht angefordert", "angefordert", "erhalten", "geprüft", "auffällig"] as const;
+
+// ============================================================
+// Immobilien-Suche (Reiter "Immobilien") — Spalten wie die
+// ImmoMetrica-Tabelle, mobil als Karten + Formular.
+// ============================================================
+
+export const PROPERTY_QUELLEN = [
+  "ImmoScout24",
+  "Kleinanzeigen",
+  "Immowelt",
+  "Immonet",
+  "ImmoMetrica",
+  "Makler",
+  "Sonstige",
+] as const;
+export type PropertyQuelle = (typeof PROPERTY_QUELLEN)[number];
+
+export interface Property {
+  id: string;
+  user_id?: string;
+  created_at: string;
+  updated_at: string;
+  fav: boolean;
+  neu: boolean;
+  quelle: string;
+  link: string; // Portal-URL zum Inserat
+  ort: string;
+  zimmer: number | null;
+  wohnflaeche: number | null; // m²
+  baujahr: number | null;
+  preis: number | null; // €
+  miete: number | null; // Kaltmiete €/Monat
+  roiSoll: number | null; // ROI (soll) in %, z. B. 5.2
+  marktwert: number | null; // € (Schätzung)
+  cashflow: number | null; // €/Monat
+  wunschpreis: number | null; // Best Case
+  wunschmiete: number | null; // Best Case
+  datum: string; // YYYY-MM-DD
+  notizen: string;
+}

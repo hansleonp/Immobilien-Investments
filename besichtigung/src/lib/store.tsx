@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import type { CriteriaSettings, Inspection, Status } from "./types";
+import type { CriteriaSettings, Inspection, Property, Status } from "./types";
 import { EMPTY_SETTINGS } from "./types";
 
 // ============================================================
@@ -21,6 +21,8 @@ import { EMPTY_SETTINGS } from "./types";
 const LS_DATA = "besichtigung.inspections";
 const LS_DIRTY = "besichtigung.dirty";
 const LS_SETTINGS = "besichtigung.settings";
+const LS_PROPS = "besichtigung.properties";
+const LS_PROPS_DIRTY = "besichtigung.properties_dirty";
 
 function loadLS<T>(key: string, fallback: T): T {
   try {
@@ -62,12 +64,16 @@ interface StoreCtx {
   session: Session | null;
   authReady: boolean;
   inspections: Inspection[];
+  properties: Property[];
   settings: CriteriaSettings;
   online: boolean;
   syncState: "idle" | "syncing" | "error" | "offline";
   upsert: (insp: Inspection) => void;
   patch: (id: string, patch: Partial<Inspection>) => void;
   remove: (id: string) => void;
+  upsertProperty: (p: Property) => void;
+  patchProperty: (id: string, patch: Partial<Property>) => void;
+  removeProperty: (id: string) => void;
   saveSettings: (s: CriteriaSettings) => void;
   signIn: (email: string, password: string) => Promise<string | null>;
   signOut: () => Promise<void>;
@@ -86,10 +92,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [inspections, setInspections] = useState<Inspection[]>(() => loadLS(LS_DATA, []));
+  const [properties, setProperties] = useState<Property[]>(() => loadLS(LS_PROPS, []));
   const [settings, setSettings] = useState<CriteriaSettings>(() => loadLS(LS_SETTINGS, EMPTY_SETTINGS));
   const [online, setOnline] = useState(navigator.onLine);
   const [syncState, setSyncState] = useState<StoreCtx["syncState"]>("idle");
   const dirtyRef = useRef<Set<string>>(new Set(loadLS<string[]>(LS_DIRTY, [])));
+  const propsDirtyRef = useRef<Set<string>>(new Set(loadLS<string[]>(LS_PROPS_DIRTY, [])));
   const settingsDirtyRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -116,6 +124,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const persistDirty = () => saveLS(LS_DIRTY, [...dirtyRef.current]);
+  const persistPropsDirty = () => saveLS(LS_PROPS_DIRTY, [...propsDirtyRef.current]);
 
   // ---- Sync zu Supabase (debounced) ----
   const pushDirty = useCallback(async () => {
@@ -124,7 +133,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return;
     }
     const ids = [...dirtyRef.current];
-    if (ids.length === 0 && !settingsDirtyRef.current) return;
+    const propIds = [...propsDirtyRef.current];
+    if (ids.length === 0 && propIds.length === 0 && !settingsDirtyRef.current) return;
     setSyncState("syncing");
     try {
       const current = loadLS<Inspection[]>(LS_DATA, []);
@@ -141,6 +151,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         dirtyRef.current.delete(id);
         persistDirty();
+      }
+      // Immobilien-Suche: als jsonb-Blob in search_properties
+      const currentProps = loadLS<Property[]>(LS_PROPS, []);
+      for (const id of propIds) {
+        const p = currentProps.find((x) => x.id === id);
+        if (p) {
+          const { error } = await supabase.from("search_properties").upsert({
+            id: p.id,
+            user_id: session.user.id,
+            data: p,
+            updated_at: p.updated_at,
+          });
+          if (error) throw error;
+        } else {
+          await supabase.from("search_properties").delete().eq("id", id);
+        }
+        propsDirtyRef.current.delete(id);
+        persistPropsDirty();
       }
       if (settingsDirtyRef.current) {
         const s = loadLS<CriteriaSettings>(LS_SETTINGS, EMPTY_SETTINGS);
@@ -196,6 +224,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setSettings(sdata.custom_criteria as CriteriaSettings);
         saveLS(LS_SETTINGS, sdata.custom_criteria);
       }
+      // Immobilien-Suche einlesen + mergen
+      const { data: pdata, error: perr } = await supabase
+        .from("search_properties")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (!perr && pdata && !cancelled) {
+        setProperties((local) => {
+          const map = new Map<string, Property>();
+          for (const r of pdata as { id: string; user_id: string; data: Property; updated_at: string }[]) {
+            map.set(r.id, { ...(r.data ?? {}), id: r.id, user_id: r.user_id, updated_at: r.updated_at } as Property);
+          }
+          for (const l of local) {
+            const remote = map.get(l.id);
+            if (!remote || propsDirtyRef.current.has(l.id) || l.updated_at > remote.updated_at) {
+              map.set(l.id, l);
+            }
+          }
+          const merged = [...map.values()].sort((a, b) => (a.updated_at < b.updated_at ? 1 : -1));
+          saveLS(LS_PROPS, merged);
+          return merged;
+        });
+      }
     })();
     return () => {
       cancelled = true;
@@ -248,6 +298,51 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [scheduleSync]
   );
 
+  const upsertProperty = useCallback(
+    (p: Property) => {
+      const withTs = { ...p, updated_at: new Date().toISOString() };
+      setProperties((prev) => {
+        const next = [withTs, ...prev.filter((x) => x.id !== p.id)];
+        saveLS(LS_PROPS, next);
+        return next;
+      });
+      propsDirtyRef.current.add(p.id);
+      persistPropsDirty();
+      scheduleSync();
+    },
+    [scheduleSync]
+  );
+
+  const patchProperty = useCallback(
+    (id: string, p: Partial<Property>) => {
+      setProperties((prev) => {
+        const next = prev.map((x) =>
+          x.id === id ? { ...x, ...p, updated_at: new Date().toISOString() } : x
+        );
+        saveLS(LS_PROPS, next);
+        return next;
+      });
+      propsDirtyRef.current.add(id);
+      persistPropsDirty();
+      scheduleSync();
+    },
+    [scheduleSync]
+  );
+
+  const removeProperty = useCallback(
+    (id: string) => {
+      setProperties((prev) => {
+        const next = prev.filter((x) => x.id !== id);
+        saveLS(LS_PROPS, next);
+        return next;
+      });
+      propsDirtyRef.current.add(id);
+      persistPropsDirty();
+      scheduleSync();
+    },
+    [scheduleSync]
+  );
+
   const saveSettings = useCallback(
     (s: CriteriaSettings) => {
       setSettings(s);
@@ -272,18 +367,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       session,
       authReady,
       inspections,
+      properties,
       settings,
       online,
       syncState,
       upsert,
       patch,
       remove,
+      upsertProperty,
+      patchProperty,
+      removeProperty,
       saveSettings,
       signIn,
       signOut,
       syncNow: () => void pushDirty(),
     }),
-    [session, authReady, inspections, settings, online, syncState, upsert, patch, remove, saveSettings, signIn, signOut, pushDirty]
+    [session, authReady, inspections, properties, settings, online, syncState, upsert, patch, remove, upsertProperty, patchProperty, removeProperty, saveSettings, signIn, signOut, pushDirty]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

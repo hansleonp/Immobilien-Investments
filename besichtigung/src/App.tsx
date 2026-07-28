@@ -8,6 +8,8 @@ import InspectionDetail from "./pages/InspectionDetail";
 import SectionPage from "./pages/SectionPage";
 import Compare from "./pages/Compare";
 import Settings from "./pages/Settings";
+import Properties from "./pages/Properties";
+import PropertyDetail from "./pages/PropertyDetail";
 
 export default function App() {
   const { session, authReady } = useStore();
@@ -24,6 +26,8 @@ export default function App() {
         <Route path="/besichtigungen" element={<Inspections />} />
         <Route path="/besichtigung/:id" element={<InspectionDetail />} />
         <Route path="/besichtigung/:id/:section" element={<SectionPage />} />
+        <Route path="/immobilien" element={<Properties />} />
+        <Route path="/immobilien/:id" element={<PropertyDetail />} />
         <Route path="/vergleich" element={<Compare />} />
         <Route path="/einstellungen" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />

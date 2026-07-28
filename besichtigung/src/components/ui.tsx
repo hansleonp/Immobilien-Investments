@@ -99,6 +99,18 @@ const tabs = [
     ),
   },
   {
+    to: "/immobilien",
+    label: "Immobilien",
+    icon: (
+      <svg viewBox="0 0 26 26" fill="none">
+        <path d="M4 11 11 5l7 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M6 9.5V19h10V9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="18.6" cy="18.6" r="3.2" stroke="currentColor" strokeWidth="1.8" />
+        <path d="m21 21 1.6 1.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     to: "/vergleich",
     label: "Vergleich",
     icon: (

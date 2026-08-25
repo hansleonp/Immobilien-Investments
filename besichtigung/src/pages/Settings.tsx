@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { AppBar } from "../components/ui";
+import { AppBar, Toggle } from "../components/ui";
 import { DEFAULT_CRITERIA, SECTION_META } from "../lib/catalog";
 import { useStore } from "../lib/store";
+import { notificationsEnabled, enableNotifications, disableNotifications } from "../lib/reminders";
 import {
   CATEGORY_LABELS,
   CATEGORY_WEIGHTS,
@@ -28,6 +29,18 @@ const DEFAULT_CAT: Record<string, Category> = {
 export default function Settings() {
   const { settings, saveSettings, session, signOut, syncState, syncNow, online } = useStore();
   const [openSection, setOpenSection] = useState<SectionId | null>(null);
+  const [notify, setNotify] = useState(() => notificationsEnabled());
+
+  const onToggleNotify = async (v: boolean) => {
+    if (v) {
+      const ok = await enableNotifications();
+      setNotify(ok);
+      if (!ok) alert("Benachrichtigungen wurden vom Browser blockiert. Bitte in den Browser-/Systemeinstellungen für diese Seite erlauben.");
+    } else {
+      disableNotifications();
+      setNotify(false);
+    }
+  };
 
   const rename = (id: string, label: string) => {
     const renamed = { ...settings.renamed };
@@ -94,6 +107,19 @@ export default function Settings() {
               Logout
             </button>
           </div>
+        </div>
+
+        {/* Benachrichtigungen */}
+        <h2 className="section-title">Benachrichtigungen</h2>
+        <div className="card form-list">
+          <div className="frow">
+            <label>Erinnerungen an Wiedervorlagen</label>
+            <Toggle on={notify} onChange={(v) => void onToggleNotify(v)} />
+          </div>
+          <p className="fineprint" style={{ padding: "4px 4px 0" }}>
+            Meldet fällige Wiedervorlagen (kontaktiert, aber keine Rückmeldung), solange die App geöffnet ist oder im
+            Hintergrund läuft. Für Meldungen bei komplett geschlossener App wäre ein Server-Push nötig — auf Wunsch einrichtbar.
+          </p>
         </div>
 
         {/* Score-Gewichte (informativ) */}

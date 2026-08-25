@@ -1,6 +1,148 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useStore } from "../lib/store";
+import { statusStyle } from "../lib/property";
+import { PROPERTY_STATUS } from "../lib/types";
+
+// ---------- Status-Auswahl (Mehrfach, inline) ----------
+export function StatusPicker({
+  value,
+  onChange,
+  align = "left",
+}: {
+  value: string[];
+  onChange: (next: string[]) => void;
+  align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const stop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  const toggle = (s: string) => {
+    const has = value.includes(s);
+    let next = has ? value.filter((x) => x !== s) : [...value, s];
+    if (next.length === 0) next = ["Neu"]; // nie ganz leer
+    onChange(next);
+  };
+
+  return (
+    <div className="statuspick" ref={ref} onClick={stop}>
+      <button
+        type="button"
+        className="statuspick-btn"
+        onClick={(e) => {
+          stop(e);
+          setOpen((o) => !o);
+        }}
+      >
+        <span className="statuspick-badges">
+          {(value.length ? value : ["Neu"]).map((s) => {
+            const st = statusStyle(s);
+            return (
+              <span key={s} className="badge" style={{ background: st.background, color: st.color }}>
+                {s}
+              </span>
+            );
+          })}
+        </span>
+        <span className="statuspick-caret">▾</span>
+      </button>
+      {open && (
+        <div className={`statuspick-menu ${align === "right" ? "right" : ""}`}>
+          {PROPERTY_STATUS.map((s) => {
+            const st = statusStyle(s);
+            const checked = value.includes(s);
+            return (
+              <label key={s} className={`statuspick-opt ${checked ? "on" : ""}`} onClick={stop}>
+                <input type="checkbox" checked={checked} onChange={() => toggle(s)} />
+                <span className="badge" style={{ background: st.background, color: st.color }}>
+                  {s}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------- Ansprechpartner-Zelle (Kontaktinfos im Popover) ----------
+export function ContactCell({
+  name,
+  telefon,
+  email,
+  align = "left",
+}: {
+  name?: string;
+  telefon?: string;
+  email?: string;
+  align?: "left" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+
+  const nm = (name || "").trim();
+  const tel = (telefon || "").trim();
+  const mail = (email || "").trim();
+  if (!nm && !tel && !mail) return <span className="ink-muted">—</span>;
+
+  const stop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+  return (
+    <div className="statuspick" ref={ref} onClick={stop}>
+      <button
+        type="button"
+        className="contact-btn"
+        onClick={(e) => {
+          stop(e);
+          setOpen((o) => !o);
+        }}
+      >
+        <span>👤 {nm || "Kontakt"}</span>
+        {(tel || mail) && <span className="statuspick-caret">▾</span>}
+      </button>
+      {open && (
+        <div className={`statuspick-menu ${align === "right" ? "right" : ""}`} style={{ minWidth: 210 }}>
+          {nm && <div style={{ fontWeight: 600, padding: "4px 8px" }}>{nm}</div>}
+          {tel ? (
+            <a className="contact-link" href={`tel:${tel.replace(/\s+/g, "")}`} onClick={(e) => e.stopPropagation()}>
+              📞 {tel}
+            </a>
+          ) : null}
+          {mail ? (
+            <a className="contact-link" href={`mailto:${mail}`} onClick={(e) => e.stopPropagation()}>
+              ✉️ {mail}
+            </a>
+          ) : null}
+          {!tel && !mail && <div className="fineprint" style={{ padding: "4px 8px" }}>Keine Kontaktdaten hinterlegt.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ---------- Score-Ring ----------
 export function ScoreRing({ value, size = 52 }: { value: number | null; size?: number }) {
@@ -78,16 +220,6 @@ export function AppBar({
 // ---------- Tab-Bar ----------
 const tabs = [
   {
-    to: "/",
-    label: "Übersicht",
-    icon: (
-      <svg viewBox="0 0 26 26" fill="none">
-        <path d="M4 12 13 4l9 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M6.5 10.5V21h13V10.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    ),
-  },
-  {
     to: "/besichtigungen",
     label: "Besichtigungen",
     icon: (
@@ -107,15 +239,6 @@ const tabs = [
         <path d="M6 9.5V19h10V9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx="18.6" cy="18.6" r="3.2" stroke="currentColor" strokeWidth="1.8" />
         <path d="m21 21 1.6 1.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    to: "/vergleich",
-    label: "Vergleich",
-    icon: (
-      <svg viewBox="0 0 26 26" fill="none">
-        <path d="M5 21V11M13 21V5M21 21v-8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
     ),
   },

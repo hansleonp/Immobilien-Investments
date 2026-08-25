@@ -3,12 +3,13 @@ import { AppBar, RecommendationBadge, ScoreRing } from "../components/ui";
 import { QUESTIONS, SECTION_META, WIZARD_ORDER } from "../lib/catalog";
 import { computeScore, effectiveCriteria, formatEUR, grossYield, pricePerSqm } from "../lib/scoring";
 import { useStore, STATUS_ORDER } from "../lib/store";
-import { CATEGORY_LABELS, CATEGORY_WEIGHTS, STATUS_LABELS, type Category, type SectionId, type Status } from "../lib/types";
+import { docUrl, fmtSize } from "../lib/docs";
+import { CATEGORY_LABELS, CATEGORY_WEIGHTS, STATUS_LABELS, type Category, type PropertyDoc, type SectionId, type Status } from "../lib/types";
 
 export default function InspectionDetail() {
   const { id } = useParams();
   const nav = useNavigate();
-  const { inspections, settings, patch, remove } = useStore();
+  const { inspections, properties, settings, patch, remove } = useStore();
   const insp = inspections.find((i) => i.id === id);
 
   if (!insp) {
@@ -27,6 +28,9 @@ export default function InspectionDetail() {
   const vermietet = !!insp.objekt.vermietet;
   const sqm = pricePerSqm(insp);
   const y = grossYield(insp);
+  // Verknüpftes Objekt: bevorzugt live (neue Uploads sichtbar), sonst Snapshot
+  const linkedProperty = insp.propertyId ? properties.find((p) => p.id === insp.propertyId) : undefined;
+  const inseratDocs = linkedProperty?.docs ?? insp.propertyDocs ?? [];
 
   // Fortschritt pro Sektion
   const sectionProgress = (section: SectionId): { done: number; total: number } => {
@@ -104,6 +108,27 @@ export default function InspectionDetail() {
             </select>
           </div>
         </div>
+
+        {/* Dokumente & Daten aus dem verknüpften Inserat */}
+        {(insp.propertyId || inseratDocs.length > 0) && (
+          <>
+            <h2 className="section-title">Aus dem Inserat</h2>
+            <div className="card">
+              {insp.propertyId && (
+                <Link to={`/immobilien/${insp.propertyId}`} className="btn ghost block" style={{ marginBottom: inseratDocs.length ? 10 : 0 }}>
+                  Zum Objekt-Eintrag ↗
+                </Link>
+              )}
+              {inseratDocs.length === 0 ? (
+                <p className="fineprint" style={{ padding: "2px" }}>
+                  Keine Dokumente am Objekt hinterlegt. Du kannst sie im Immobilien-Eintrag hochladen.
+                </p>
+              ) : (
+                <InseratDocs docs={inseratDocs} />
+              )}
+            </div>
+          </>
+        )}
 
         {/* Red Flags */}
         {score.redFlags.length > 0 && (
@@ -199,5 +224,28 @@ export default function InspectionDetail() {
         </button>
       </main>
     </>
+  );
+}
+
+function InseratDocs({ docs }: { docs: PropertyDoc[] }) {
+  const open = async (d: PropertyDoc) => {
+    const url = await docUrl(d.path);
+    if (url) window.open(url, "_blank", "noopener");
+    else alert("Konnte das Dokument nicht öffnen.");
+  };
+  return (
+    <ul className="doc-list">
+      {docs.map((d) => (
+        <li key={d.id} className="doc-row">
+          <button className="doc-name" onClick={() => void open(d)} title="Öffnen">
+            📄 {d.name}
+          </button>
+          <div className="doc-meta">
+            <span className="badge neutral">{d.kategorie}</span>
+            {d.size ? <span className="unit">{fmtSize(d.size)}</span> : null}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }

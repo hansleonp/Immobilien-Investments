@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { checkReminders } from "./reminders";
 import type { CriteriaSettings, Inspection, Property, Status } from "./types";
 import { EMPTY_SETTINGS } from "./types";
 
@@ -39,6 +40,25 @@ function saveLS(key: string, value: unknown) {
   } catch {
     // Speicher voll (z. B. viele Offline-Fotos) — ignorieren
   }
+}
+
+// Alt-Daten verträglich machen: Status immer Array, docs immer Array
+function normProp(p: Property): Property {
+  const s = (p as { status?: unknown }).status;
+  return {
+    ...p,
+    status: Array.isArray(s) ? (s.length ? (s as string[]) : ["Neu"]) : typeof s === "string" && s ? [s] : ["Neu"],
+    docs: Array.isArray(p.docs) ? p.docs : [],
+    titel: p.titel ?? "",
+    adresse: p.adresse ?? "",
+    lat: typeof p.lat === "number" ? p.lat : null,
+    lng: typeof p.lng === "number" ? p.lng : null,
+    ansprechpartner: p.ansprechpartner ?? "",
+    telefon: p.telefon ?? "",
+    email: p.email ?? "",
+    wiedervorlage: p.wiedervorlage ?? "",
+    history: Array.isArray(p.history) ? p.history : [],
+  };
 }
 
 export function newInspection(): Inspection {
@@ -92,7 +112,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [inspections, setInspections] = useState<Inspection[]>(() => loadLS(LS_DATA, []));
-  const [properties, setProperties] = useState<Property[]>(() => loadLS(LS_PROPS, []));
+  const [properties, setProperties] = useState<Property[]>(() => loadLS<Property[]>(LS_PROPS, []).map(normProp));
   const [settings, setSettings] = useState<CriteriaSettings>(() => loadLS(LS_SETTINGS, EMPTY_SETTINGS));
   const [online, setOnline] = useState(navigator.onLine);
   const [syncState, setSyncState] = useState<StoreCtx["syncState"]>("idle");
@@ -136,9 +156,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const propIds = [...propsDirtyRef.current];
     if (ids.length === 0 && propIds.length === 0 && !settingsDirtyRef.current) return;
     setSyncState("syncing");
-    try {
-      const current = loadLS<Inspection[]>(LS_DATA, []);
-      for (const id of ids) {
+    // Pro Datensatz einzeln syncen: ein fehlerhafter Eintrag darf die
+    // restliche Warteschlange NICHT blockieren (bleibt dirty für später).
+    let hadError = false;
+    const current = loadLS<Inspection[]>(LS_DATA, []);
+    for (const id of ids) {
+      try {
         const insp = current.find((i) => i.id === id);
         if (insp) {
           const { error } = await supabase.from("inspections").upsert({
@@ -151,10 +174,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         dirtyRef.current.delete(id);
         persistDirty();
+      } catch {
+        hadError = true;
       }
-      // Immobilien-Suche: als jsonb-Blob in search_properties
-      const currentProps = loadLS<Property[]>(LS_PROPS, []);
-      for (const id of propIds) {
+    }
+    // Immobilien-Suche: als jsonb-Blob in search_properties
+    const currentProps = loadLS<Property[]>(LS_PROPS, []);
+    for (const id of propIds) {
+      try {
         const p = currentProps.find((x) => x.id === id);
         if (p) {
           const { error } = await supabase.from("search_properties").upsert({
@@ -169,8 +196,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
         propsDirtyRef.current.delete(id);
         persistPropsDirty();
+      } catch {
+        hadError = true;
       }
-      if (settingsDirtyRef.current) {
+    }
+    if (settingsDirtyRef.current) {
+      try {
         const s = loadLS<CriteriaSettings>(LS_SETTINGS, EMPTY_SETTINGS);
         const { error } = await supabase.from("inspection_settings").upsert({
           user_id: session.user.id,
@@ -178,11 +209,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         });
         if (error) throw error;
         settingsDirtyRef.current = false;
+      } catch {
+        hadError = true;
       }
-      setSyncState("idle");
-    } catch {
-      setSyncState("error");
     }
+    setSyncState(hadError ? "error" : "idle");
   }, [session]);
 
   const scheduleSync = useCallback(() => {
@@ -233,7 +264,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setProperties((local) => {
           const map = new Map<string, Property>();
           for (const r of pdata as { id: string; user_id: string; data: Property; updated_at: string }[]) {
-            map.set(r.id, { ...(r.data ?? {}), id: r.id, user_id: r.user_id, updated_at: r.updated_at } as Property);
+            map.set(r.id, normProp({ ...(r.data ?? {}), id: r.id, user_id: r.user_id, updated_at: r.updated_at } as Property));
           }
           for (const l of local) {
             const remote = map.get(l.id);
@@ -251,6 +282,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, [session, online, pushDirty]);
+
+  // ---- Fällige Wiedervorlagen benachrichtigen (falls aktiviert) ----
+  useEffect(() => {
+    void checkReminders(properties);
+  }, [properties]);
 
   // ---- Mutationen ----
   const upsert = useCallback(

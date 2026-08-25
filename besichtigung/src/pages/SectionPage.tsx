@@ -4,11 +4,13 @@ import { CriterionRow } from "../components/CriterionRow";
 import { AppBar, RecommendationBadge, ScoreRing, Toggle } from "../components/ui";
 import {
   DOCUMENTS,
+  LAGE_FIELDS,
   MIETER_FIELDS,
   OBJEKT_FIELDS,
   QUESTIONS,
   SECTION_META,
   TECH_FIELDS,
+  WEG_FIELDS,
   WIZARD_ORDER,
 } from "../lib/catalog";
 import { computeScore, effectiveCriteria, formatEUR, grossYield, pricePerSqm } from "../lib/scoring";
@@ -75,10 +77,32 @@ export default function SectionPage() {
 
         {sec === "objekt" && <ObjektForm insp={insp} setObjekt={setObjekt} />}
 
+        {sec === "lage" && (
+          <>
+            <InfoFields fields={LAGE_FIELDS} insp={insp} setObjekt={setObjekt} />
+            {typeof insp.objekt.adresse === "string" && insp.objekt.adresse.trim() && (
+              <a
+                className="btn ghost block"
+                style={{ marginBottom: 12 }}
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(insp.objekt.adresse)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Adresse auf Karte öffnen ↗
+              </a>
+            )}
+          </>
+        )}
+
         {sec === "technik" && <InfoFields fields={TECH_FIELDS} insp={insp} setObjekt={setObjekt} />}
         {sec === "mieter" && <InfoFields fields={MIETER_FIELDS} insp={insp} setObjekt={setObjekt} />}
 
-        {sec === "weg" && <DocList insp={insp} patch={patch} />}
+        {sec === "weg" && (
+          <>
+            <InfoFields fields={WEG_FIELDS} insp={insp} setObjekt={setObjekt} />
+            <DocList insp={insp} patch={patch} />
+          </>
+        )}
 
         {sec === "fragen" && <QuestionList insp={insp} patch={patch} vermietet={vermietet} />}
 
@@ -89,7 +113,7 @@ export default function SectionPage() {
           <Fragment key={group || "std"}>
             {group ? (
               <h2 className="group-title">{group}</h2>
-            ) : sec === "technik" || sec === "mieter" ? (
+            ) : sec === "technik" || sec === "mieter" || sec === "lage" || sec === "weg" ? (
               <h2 className="group-title">Bewertung</h2>
             ) : null}
             <div className="card form-list">

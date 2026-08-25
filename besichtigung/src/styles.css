@@ -331,17 +331,6 @@ a { color: var(--primary); text-decoration: none; }
 .flagrow.critical .dot { background: var(--verybad); }
 .flagrow.warn .dot { background: var(--ok); }
 
-/* ---------- Vergleich ---------- */
-.comparewrap { overflow-x: auto; margin: 0 -16px; padding: 0 16px; }
-.comparetable { border-collapse: collapse; min-width: 100%; }
-.comparetable th, .comparetable td {
-  text-align: left; padding: 10px 12px; font-size: 14px; letter-spacing: -0.224px;
-  border-bottom: 1px solid var(--divider-soft); white-space: nowrap;
-}
-.comparetable th { color: var(--ink-muted-48); font-weight: 600; font-size: 12px; }
-.comparetable td.head { font-weight: 600; font-size: 15px; }
-.comparetable .best { color: var(--good); font-weight: 600; }
-
 /* ---------- Login ---------- */
 .login {
   min-height: 100dvh; display: flex; flex-direction: column;
@@ -405,5 +394,127 @@ a { color: var(--primary); text-decoration: none; }
   .prop-table tbody tr:hover { background: var(--divider-soft); }
   .prop-table tbody tr:last-child td { border-bottom: none; }
   .prop-table td.note { max-width: 220px; overflow: hidden; text-overflow: ellipsis; color: var(--ink-muted-80); }
+  .prop-table td.pname { max-width: 240px; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
   .prop-table .starbtn { font-size: 18px; padding: 0; }
+  /* Best-Case-Spalten leicht violett getönt (wie in der Excel) */
+  .prop-table th.bc { color: #6B3FA0; }
+  .prop-table td.bc, .prop-table th.bc { background: rgba(107, 63, 160, 0.05); }
+  .prop-table tbody tr:hover td.bc { background: rgba(107, 63, 160, 0.10); }
 }
+
+/* ---------- Dokumente je Immobilie ---------- */
+.doc-upload { display: flex; gap: 8px; align-items: center; }
+.doc-upload select { flex: 0 0 auto; }
+.doc-upload .btn { flex: 1; }
+.doc-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.doc-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--hairline); border-radius: var(--r-md); background: var(--pearl, #f7f7f8); }
+.doc-name { flex: 1 1 160px; min-width: 0; text-align: left; background: none; border: none; padding: 0; color: var(--primary); font-size: 15px; font-weight: 600; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.doc-meta { display: flex; align-items: center; gap: 8px; }
+.doc-meta select { font-size: 13px; padding: 3px 6px; }
+.doc-del { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 4px; opacity: 0.7; }
+.doc-del:hover { opacity: 1; }
+
+.btn.ghost { background: var(--pearl); color: var(--ink-muted-80); border: 1px solid var(--divider-soft); }
+
+/* ---------- Auswahl-Sheet (neue Besichtigung) ---------- */
+.sheet-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.35); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { width: 100%; max-width: 640px; max-height: 85vh; overflow-y: auto; background: var(--card, #fff); border-radius: 18px 18px 0 0; padding: 8px 16px 20px; box-shadow: 0 -8px 30px rgba(0,0,0,0.2); }
+@media (min-width: 820px) { .sheet-overlay { align-items: center; } .sheet { border-radius: 18px; } }
+.sheet-handle { width: 40px; height: 4px; border-radius: 2px; background: var(--divider-soft); margin: 6px auto 10px; }
+.sheet-divider { display: flex; align-items: center; text-align: center; color: var(--ink-muted-48); font-size: 13px; margin: 14px 0 10px; gap: 10px; }
+.sheet-divider::before, .sheet-divider::after { content: ""; flex: 1; height: 1px; background: var(--divider-soft); }
+.sheet-search { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid var(--hairline); border-radius: var(--r-md); font-size: 15px; margin-bottom: 8px; }
+.sheet-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.pick-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--pearl, #f7f7f8); border: 1px solid var(--hairline); border-radius: var(--r-md); padding: 10px 12px; cursor: pointer; }
+.pick-row:active { transform: scale(0.99); }
+.pick-main { flex: 1; min-width: 0; }
+.pick-main .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-main .s { font-size: 13px; color: var(--ink-muted-80); }
+.pick-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex: 0 0 auto; }
+
+/* ---------- Kalender (Besichtigungen) ---------- */
+.cal-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.cal-title { font-weight: 700; font-size: 17px; }
+.cal-nav { display: flex; gap: 6px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-dow { text-align: center; font-size: 12px; font-weight: 600; color: var(--ink-muted-80); padding: 4px 0; }
+.cal-cell { min-height: 82px; border: 1px solid var(--divider-soft); border-radius: 8px; padding: 4px; background: var(--card, #fff); display: flex; flex-direction: column; gap: 3px; overflow: hidden; }
+.cal-cell.muted { opacity: 0.4; }
+.cal-cell.today { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.cal-daynum { font-size: 12px; font-weight: 600; color: var(--ink-muted-80); }
+.cal-ev { display: block; width: 100%; text-align: left; border: none; border-radius: 5px; padding: 2px 5px; font-size: 11px; line-height: 1.3; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+.cal-ev.insp { background: #1F4E78; }
+.cal-ev.wv { background: #B45309; }
+.cal-more { font-size: 11px; color: var(--ink-muted-80); }
+.cal-week { display: flex; flex-direction: column; gap: 8px; }
+.cal-wday { border: 1px solid var(--divider-soft); border-radius: 10px; padding: 8px; background: var(--card, #fff); display: flex; flex-direction: column; gap: 4px; }
+.cal-wday.today { border-color: var(--primary); box-shadow: inset 0 0 0 1px var(--primary); }
+.cal-wday-head { font-weight: 600; font-size: 14px; }
+.cal-week .cal-ev { font-size: 13px; padding: 6px 8px; }
+.cal-empty { color: var(--ink-muted-48); font-size: 13px; }
+.cal-legend { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--ink-muted-80); }
+.cal-legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+.cal-legend .dot.insp { background: #1F4E78; }
+.cal-legend .dot.wv { background: #B45309; }
+
+/* ---------- Immobilien-Filter ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 8px; }
+.filtsearch { flex: 1 1 200px; min-width: 0; padding: 9px 12px; border: 1px solid var(--hairline); border-radius: var(--r-pill); font-size: 14px; background: var(--pearl); }
+.filtsel { flex: 0 0 auto; padding: 9px 12px; border: 1px solid var(--hairline); border-radius: var(--r-pill); font-size: 14px; background: var(--pearl); color: var(--ink); cursor: pointer; }
+
+/* Excel-artiger Spalten-Filter (Status-Header) */
+.hfilter { position: relative; display: inline-block; }
+.hfilter-btn { display: inline-flex; align-items: center; gap: 4px; background: none; border: none; padding: 0; font: inherit; font-weight: 600; color: var(--ink-muted-80); cursor: pointer; }
+.hfilter-btn.on { color: var(--primary); }
+.hfilter-caret { font-size: 11px; opacity: 0.7; }
+.hfilter-menu { min-width: 190px; }
+.hfilter-opt { display: block; width: 100%; text-align: left; background: none; border: none; padding: 7px 10px; border-radius: 8px; cursor: pointer; font-size: 14px; color: var(--ink); }
+.hfilter-opt:hover { background: var(--divider-soft); }
+.hfilter-opt.on { background: var(--divider-soft); font-weight: 600; color: var(--primary); }
+
+/* ---------- Immobilien-Karte ---------- */
+.propmap { position: relative; z-index: 0; height: 60vh; min-height: 340px; width: 100%; border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--hairline); }
+.leaflet-div-icon { background: transparent; border: none; }
+.mappin { width: 22px; height: 22px; background: var(--c); border: 2px solid #fff; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 1px 4px rgba(0,0,0,0.45); }
+.mappin.hl { width: 30px; height: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.55); }
+.maplegend { font-size: 13px; color: var(--ink-muted-80); padding: 8px 2px 0; }
+.mapcard { margin-top: 12px; }
+.mapcard .dot, .maplistrow .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+.maplistrow { display: flex; align-items: center; gap: 10px; width: 100%; border: none; cursor: pointer; padding: 8px; border-radius: 8px; }
+.maplistrow:hover { background: var(--divider-soft); }
+
+/* ---------- Ansprechpartner-Popover ---------- */
+.ink-muted { color: var(--ink-muted-48); }
+.contact-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 2px 0; cursor: pointer; color: var(--primary); font-size: inherit; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contact-link { display: block; padding: 8px; border-radius: 8px; color: var(--primary); text-decoration: none; font-size: 15px; }
+.contact-link:hover { background: var(--divider-soft); }
+
+/* ---------- Verlauf / Historie ---------- */
+.hist-add { display: flex; gap: 8px; align-items: center; }
+.hist-add input { flex: 1; min-width: 0; padding: 10px 12px; border: 1px solid var(--hairline); border-radius: var(--r-md); font-size: 15px; }
+.hist-add .btn { flex: 0 0 auto; font-size: 15px; padding: 10px 16px; }
+.hist-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 0; }
+.hist-row { display: flex; align-items: baseline; gap: 10px; padding: 9px 4px; border-bottom: 1px solid var(--divider-soft); }
+.hist-row:last-child { border-bottom: none; }
+.hist-ts { flex: 0 0 auto; font-size: 12px; font-weight: 600; color: var(--ink-muted-80); min-width: 92px; }
+.hist-text { flex: 1; min-width: 0; }
+.hist-row .doc-del { flex: 0 0 auto; }
+
+/* Prägnanter Besichtigungstermin in der Liste */
+.termin { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 10px; border-radius: var(--r-pill); background: var(--divider-soft); color: var(--ink); font-size: 14px; font-weight: 600; letter-spacing: -0.2px; }
+
+/* ---------- Status-Picker (Mehrfachauswahl, inline) ---------- */
+.statuspick { position: relative; display: inline-block; }
+.statuspick-btn { display: inline-flex; align-items: center; gap: 6px; background: none; border: none; padding: 2px; cursor: pointer; }
+.statuspick-badges { display: flex; flex-wrap: wrap; gap: 4px; }
+.statuspick-caret { color: var(--ink-muted-48); font-size: 11px; }
+.statuspick-menu { position: absolute; top: 100%; left: 0; margin-top: 6px; z-index: 60; background: var(--card, #fff); border: 1px solid var(--hairline); border-radius: var(--r-md); box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 6px; min-width: 190px; display: flex; flex-direction: column; gap: 2px; }
+.statuspick-menu.right { left: auto; right: 0; }
+.statuspick-opt { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; cursor: pointer; }
+.statuspick-opt:hover, .statuspick-opt.on { background: var(--divider-soft); }
+.statuspick-opt input { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* Verworfen: Zeile/Karte automatisch rot markieren */
+.icard.verworfen { border-color: #F0A9A2; background: rgba(180, 35, 24, 0.05); }
+.prop-table tbody tr.verworfen td { background: rgba(180, 35, 24, 0.06); }
+.prop-table tbody tr.verworfen:hover td { background: rgba(180, 35, 24, 0.11); }

@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["apple-touch-icon.png"],
+      includeAssets: ["apple-touch-icon.png", "icon.svg"],
       manifest: {
         name: "Besichtigungen",
         short_name: "Besichtigung",
@@ -20,6 +20,7 @@ export default defineConfig({
         background_color: "#f5f5f7",
         theme_color: "#f5f5f7",
         icons: [
+          { src: "icon.svg", sizes: "any", type: "image/svg+xml" },
           { src: "pwa-192.png", sizes: "192x192", type: "image/png" },
           { src: "pwa-512.png", sizes: "512x512", type: "image/png" },
           { src: "pwa-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },

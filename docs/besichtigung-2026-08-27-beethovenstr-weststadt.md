@@ -58,6 +58,7 @@ Nachhaken: Das Erhöhungsschreiben 600 → 650 fehlt im Ordner. Gab es Rückstä
 ## B. Objekt & Zustand vor Ort
 
 6. **Warum kein Angebot der Vorinteressenten?** → an Titze, ruhig direkt: „Zwei Interessenten haben nach der Besichtigung ja kein Angebot abgegeben — woran lag's aus Ihrer Sicht?" Antwort mit eigenem Eindruck abgleichen.
+6a. **WG-Tauglichkeit prüfen (stille Upside — nicht ansprechen!):** Sind die 2 Zimmer wirklich getrennt erschließbar (kein Durchgangszimmer)? Zimmergrößen notieren (Grundriss abgleichen), Küche groß genug für 2, Bad-Zustand. Die WG-Option (~900 € kalt bei Auszug) ist Teil der Kompromiss-Begründung für den 160er-Zielpreis.
 7. **Renovierungsstau Bad/Küche:** Wie schlimm real? Alter der Bäder/EBK, Zustand Fliesen/Fugen/Silikon, funktioniert alles? Grobe eigene Schätzung Renovierungskosten notieren.
 8. **Wandanschluss Hofseite (ETV-TOP 7.6):** Wo genau ist der Substanzschaden? EG betroffen? Feuchtespuren in der Wohnung (Sockelleisten, Ecken, Geruch) — EG über Keller ist die exponierteste Lage.
 9. **Bleirohre:** Lt. Fa. Prinz getauscht, Gutachten lief — Ergebnis? Sind auch die Leitungen **in der Wohnung** (Sondereigentum!) getauscht? → im Keller Stränge ansehen, Material prüfen.

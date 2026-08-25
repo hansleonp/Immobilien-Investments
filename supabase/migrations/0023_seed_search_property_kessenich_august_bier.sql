@@ -1,0 +1,17 @@
+-- Daten-Seed: Immowelt-Inserat cdb436a2 (Bonn-Kessenich, August-Bier-Str. 4, 1-Zi-ETW 29,5 m2, 1. OG, vermietet 374,65 EUR, Vonovia-Privatisierung)
+-- Erstbewertung 07.08.2026. Idempotent: Insert nur, falls weder id noch Link bereits existieren.
+
+insert into public.search_properties (id, user_id, data, updated_at)
+select
+  'f6f14761-4f9f-409e-9ba4-5d6dc7231f57',
+  coalesce(
+    (select user_id from public.search_properties order by updated_at desc limit 1),
+    (select id from auth.users order by created_at limit 1)
+  ),
+  '{"id": "f6f14761-4f9f-409e-9ba4-5d6dc7231f57", "created_at": "2026-08-07T12:00:00.000Z", "updated_at": "2026-08-07T12:00:00.000Z", "fav": false, "neu": true, "status": ["Neu"], "quelle": "Immowelt", "link": "https://www.immowelt.de/expose/cdb436a2-a416-4812-9672-e5087a70cf70", "titel": "Vermietetes 1-Zi-Apartment Kessenich, August-Bier-Str. 4 (Vonovia-Privatisierung, Nebenkosten-Erstattungsaktion)", "ort": "Bonn-Kessenich", "adresse": "August-Bier-Str. 4", "lat": null, "lng": null, "zimmer": 1, "wohnflaeche": 29.5, "baujahr": 1953, "preis": 123000, "miete": 374.65, "roiSoll": null, "marktwert": null, "cashflow": -97, "wunschpreis": 105000, "wunschmiete": 374.65, "datum": "2026-08-07", "notizen": "Analyse 07.08.2026: Beobachten. Zielpreis nominal ~105.000 EUR solange die Nebenkosten-Aktion laeuft (entspricht effektiv ~97.700 EUR = App-Logik CF 0 auf Ist-Miete); konservativ traegt erst ~78.500 EUR (mit durchsetzbarer Mieterhoehung auf ~430 EUR: ~93.000 EUR). Bei 123.000 EUR: CF -97 EUR/Monat (App-Logik), konservativ (n. uml. ~50 EUR geschaetzt + Ruecklage 23,60 EUR) ca. -171 EUR; Faktor 27,4; Brutto 3,66 %, Netto 3,32 %.\nBesonderheit: provisionsfrei UND Verkaeufer erstattet bis 31.12.2026 GrESt + Notar + Grundbuch (~10.455 EUR = 8,5 %) - wirkt wie ~9.300 EUR Nachlass, Angebotspreis entspricht wirtschaftlich ~113.700 EUR ohne Aktion.\nMietansatz: Ist-Kaltmiete 374,65 EUR (4.495,80 EUR p. a.) seit 2019 nie erhoeht = 12,70 EUR/m2, klar unter Kessenich-Markt (Stadtteil-Schnitt 14,26 EUR/m2, 1-Zi Bonn ~15,89 EUR/m2) - via Kappungsgrenze 15 % kurzfristig ~430 EUR hebbar.\nRisiken: Gasetagenheizung + Durchlauferhitzer = Tausch-Capex 100 % beim Eigentuemer (GEG), Bj. 1953 (ab 2013 gedaemmt, Klasse D, innenliegendes Bad), WEG erst 2021 durch Vonovia-Aufteilung gegruendet (26 Whg. in 3 Haeusern, Vonovia vermutlich Stimmenmehrheit), Erhaltungsruecklage 40.000 EUR = nur ~1.540 EUR/Einheit (duenn), n. uml. Hausgeld-Anteil offen (Hausgeld 171 EUR = 5,8 EUR/m2 fuer 29,5 m2 eher hoch), 1-Zi-Klumpenrisiko/Fluktuation. Schwesterwohnung im selben Haus (3 Zi, 62 m2, 245.000 EUR) am 29.07.2026 mit Finger weg bewertet (Faktor 33).\nPluspunkte: 4.169 EUR/m2 unter Kessenich-Schnitt (4.400-5.100), gute vermietbare Mikrolage, vermietet seit 2019, Fenster isolierverglast, Waermedaemmung ab 2013, professionelle Bewirtschaftung.\nAnbieter: Vonovia SE ueber Vertriebspartner RW GmbH, Frau Danielle Rechin, Tel. 0160 95100949, post@rw-immo.org, Objekt-ID 39952-13. Erstkontakt-Mail entworfen, noch nicht versendet.", "ansprechpartner": "Danielle Rechin (RW GmbH / Vonovia SE)", "telefon": "0160 95100949", "email": "post@rw-immo.org", "history": [], "docs": []}'::jsonb,
+  now()
+where not exists (
+  select 1 from public.search_properties
+  where id = 'f6f14761-4f9f-409e-9ba4-5d6dc7231f57'
+     or data->>'link' = 'https://www.immowelt.de/expose/cdb436a2-a416-4812-9672-e5087a70cf70'
+);

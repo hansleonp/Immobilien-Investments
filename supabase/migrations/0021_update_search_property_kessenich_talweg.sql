@@ -1,0 +1,20 @@
+-- Update: Kessenich, Bonner Talweg 235 WE 166/51 (Kleinanzeigen 3462121438) — 2. Nachbewertung 07.08.2026.
+-- Neue Unterlagen: ETV-Protokolle 26.06.2025 + 28.05.2026, Tagesordnung 2026, Beschlusssammlung bis 15.06.2026.
+-- Urteil bestaetigt (Finger weg zum Inseratspreis), Obergrenze 115.000-120.000 EUR unveraendert; Notizen komplett erneuert.
+-- Match ueber data->>'link'; updated_at im JSON und in der Spalte, damit der Local-first-Sync die Aenderung uebernimmt.
+
+update public.search_properties
+set
+  data = data || jsonb_build_object(
+    'datum', '2026-08-07',
+    'wunschpreis', 115000,
+    'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+    'notizen',
+      'Analyse 07.08.2026 (2. Nachbewertung: ETV-Protokolle 2025+2026, Tagesordnung 2026, Beschlusssammlung bis 06/2026): Finger weg zum aufgerufenen Preis - Urteil bestaetigt, Risiko jetzt praezisiert. Paket 159.000 + 15.000 TG-Pflichtkauf = 174.000 EUR; Obergrenze unveraendert 115.000-120.000 EUR inkl. TG (App-Logik CF 0 bei 140.800; konservativ CF 0 bei ~103.000; fairer Wert mit Abschlag fuer unbeschlossene Grossposten ~98.000). Bei 174.000: CF -128 (App-Logik), konservativ ~-273 EUR/Mon, Faktor 26,9, Brutto 3,7 %.'
+      || E'\n' || 'Neu aus den Protokollen: KEINE Sonderumlage 2025/2026 beschlossen; ausdrueckliche Strategie "keine Sonderumlagen", alles aus der Ruecklage (Mindestsockel 25 T). Beschlossen zulasten Ruecklage: Pflanzbecken-Abdichtung ~28,5 T (2025) + Verfuellung max. 40 T (2026), Balkone weitere 20 T (2026), Asbest-Abwasserstraenge Haus 233 ~20 T (2026) + VORRATSBESCHLUSS Haus 235 (eigenes Haus!) ~50 T fuer 2027 = Baustelle direkt nach Kauf. Ruecklage 28.05.2026 nur noch 63,3 T (06/2025: 69,1 T) - faehrt nach den 2026er Massnahmen auf den Sockel; Dach ~210 T und TG-Abdichtung ~200 T weiterhin UNBESCHLOSSEN und ungedeckt. Wirtschaftsplan 2026: 295 T (Vj. 290 T), Ruecklagenzufuehrung auf 95 T/J erhoeht - Hausgeld steigt weiter (~238/Mon, 6,4 EUR/m2). Fenster-SU 360 T: nur auf Abruf des einzelnen Eigentuemers faellig - Fenster WE 166 2017/18 saniert, faktisch kein Exposure (schriftlich bestaetigen lassen). 50-T-SU-Musterrechnung 2025 NICHT beschlossen. Rauchmelder-Austausch 2026 einheitlich beschlossen (35 EUR zzgl. MwSt/Stueck je Wohnung, Bagatelle ~100 EUR). NEU entdeckt: Elektrokaesten/Steigleitungen von 1972/73 lt. Protokoll 2026 "sicherlich veraltet" (Urteil Fa. Kasper 2019) - Kaesten in der Wohnung sind SONDEREIGENTUM = kuenftiger Eigen-Capex. Wohngeldrueckstaende ~7,2 T im gerichtlichen Mahnverfahren. Casa Cura wiederbestellt 2027-2030 (22,50 bis Ende 2027, ab 2028 25,00 zzgl. MwSt; Fr. Sachs uebernimmt Liegenschaft ab 2027, Hr. Stoffel geht in Ruhestand). Grundbuch-Eintragung Altbeschluesse (TOP 12/2025) mit 30 Nein ABGELEHNT, Frist 31.12.2025 verstrichen - lt. Verwaltung keine Oeffnungsklauseln in der GO, Risiko fuer Erwerber gering. Keine Beschlussanfechtungen oder Gerichtsverfahren in der Beschlusssammlung vermerkt.'
+      || E'\n' || 'Fazit: akutes Sonderumlage-Risiko entschaerft (WEG handlungsfaehig, Beschluesse einstimmig bis breit), strukturelles Problem bestaetigt: Hausgeld dauerhaft sehr hoch, Ruecklage permanent auf Kante, ~450-500 T offener Stau (Anteil MEA 102/10.000 ~4,6-5,1 T) nur vertagt statt geloest. Verhandlungstelefonat geplant: Anker 110-115 T, Schmerzgrenze 120 T inkl. TG.'
+      || E'\n' || 'Ist-Miete: 480 Wohnung (MV Schirner ab 10/2025) + 60 TG = 540 EUR. Hausgeld 234 EUR/Mon (n.u. ~115 inkl. 76,50 Ruecklage; 2026 leicht steigend). Grundsteuer 233,65 EUR/J. Verkaeufer: Dieter Goertz (privat).'
+      || E'\n' || 'Weiter offen: Grundbuchauszug WE 166; schriftliche Bestaetigung der Verwaltung zum Fenster-Abruf-Status; Balkon-Zustand/Prioritaet WE 166 (Protokolle nennen keine Einheiten); Einzelabrechnung 2025 (Nachschuss war faellig 05.07.2026 - vom Verkaeufer bezahlt?); TG-Stellplatz 27 Naesse-Status.'
+  ),
+  updated_at = now()
+where data->>'link' = 'https://www.kleinanzeigen.de/s-anzeige/anzeige/3462121438-196-23696';

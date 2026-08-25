@@ -1,0 +1,17 @@
+-- Daten-Seed: Kleinanzeigen-Inserat 3470543584 (Bonn-Weststadt, Musikerviertel, Beethovenstr. 50)
+-- Zweitinserat zum IS24-Objekt 169615019 (PlanetHome), Erstbewertung des Kleinanzeigen-Links am 05.08.2026.
+-- Idempotent: Insert nur, falls weder die id noch der Link bereits existieren.
+insert into public.search_properties (id, user_id, data, updated_at)
+select
+  '44c55d16-a065-4e53-be10-24d0605ef6f6',
+  coalesce(
+    (select user_id from public.search_properties order by updated_at desc limit 1),
+    (select id from auth.users order by created_at limit 1)
+  ),
+  '{"id": "44c55d16-a065-4e53-be10-24d0605ef6f6", "created_at": "2026-08-05T12:00:00.000Z", "updated_at": "2026-08-05T12:00:00.000Z", "fav": false, "neu": true, "status": ["Neu"], "quelle": "Kleinanzeigen", "link": "https://www.kleinanzeigen.de/s-anzeige/vermietete-2-zimmer-eigentumswohnung-mit-garage-im-musikerviertel-der-bonner-weststadt/3470543584-196-23685", "titel": "Vermietete 2-Zimmer-Eigentumswohnung mit Garage im Musikerviertel der Bonner Weststadt", "ort": "Bonn-Weststadt", "adresse": "Beethovenstr. 50", "lat": null, "lng": null, "zimmer": 2, "wohnflaeche": 58, "baujahr": 1937, "preis": 210000, "miete": 790, "roiSoll": null, "marktwert": null, "cashflow": -16, "wunschpreis": 190000, "wunschmiete": 790, "datum": "2026-08-05", "notizen": "Analyse 05.08.2026 (Kleinanzeigen-Inserat vom 28.07.2026; dasselbe Objekt lief bereits als IS24 169615019 und wurde am 29.07. mit Expose nachbewertet - Beethovenstr. 50): Kaufen, wenn Preis passt - Zielpreis ~190.000 EUR (Erstgebot 182.000-185.000 EUR, Schmerzgrenze ~197.000 EUR; App-Logik CF 0 bei ~205.900 EUR mit Garagenmiete, konservativ ~180.800 EUR). Bei 210.000 EUR: CF -16 EUR/Monat (App-Logik, Miete 790 = 700 Wohnung + 90 Garage), konservativ ca. -112 EUR/Monat (n. uml. Hausgeld ~50 EUR geschaetzt + Ruecklage 0,80 EUR/m2), Faktor 22,2, Brutto 4,5 %. Ohne Garagenmiete (nur 700 EUR): CF -106, CF-0-Preis 182.500 EUR.\nRisiken: Bj. 1937 mit Wiederaufbau der Obergeschosse 1949 (Substanzfragen), Renovierungsstau Bad/Kueche (aus IS24-Expose vom 29.07. bekannt), Wohnflaeche widerspruechlich (Feld 58 m2, Beschreibung ca. 55 m2 = bis 5 % weniger), Hausgeld 274 EUR recht hoch (4,7 EUR/m2, n. uml. Anteil unbekannt), Widerspruch Heizung: Beschreibung Gas-Etagen-Brennwerttherme 2026 (Sondereigentum? Kostentraeger?) vs. Energieausweis Zentralheizung; Garage 90 EUR inkl. NK - Teileigentum und Mietvertrag klaeren.\nPluspunkte: Musikerviertel Weststadt = A-Lage zwischen Poppelsdorf und Suedstadt (Uni-Naehe, HBF fusslaeufig), 3.621 EUR/m2 ca. 16-21 % unter Weststadt-Schnitt (~4.580 EUR/m2), Ist-Miete 12,07 EUR/m2 unter Markt (~13,1-14,7 EUR/m2) = Mietsteigerungspotenzial, Fenster 2021 + Therme 2026 neu, Klasse D (114,2 kWh) fuer Altbau ok, stabil vermietet seit 09/2017, Garage generiert Zusatzmiete, liquides 2-Zi-Segment.\nMietansatz: Ist-Miete 8.400 EUR p.a. Wohnung (700 EUR/Monat) + 90 EUR Garage inkl. NK. Anbieter: PlanetHome Group GmbH, Patrick Titze (Objekt-ID 742730), Kaeuferprovision 3,57 %. Erstkontakt-Mail entworfen (Hausgeld-Split, Ruecklage, Protokolle, Mietvertrag, Garage, Wohnflaeche, Therme), noch nicht versendet."}'::jsonb,
+  now()
+where not exists (
+  select 1 from public.search_properties
+  where id = '44c55d16-a065-4e53-be10-24d0605ef6f6'
+     or data->>'link' = 'https://www.kleinanzeigen.de/s-anzeige/vermietete-2-zimmer-eigentumswohnung-mit-garage-im-musikerviertel-der-bonner-weststadt/3470543584-196-23685'
+);

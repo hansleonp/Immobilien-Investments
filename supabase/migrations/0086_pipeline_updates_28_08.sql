@@ -1,20 +1,9 @@
--- Pipeline-Updates 28.08.2026 (Nutzer-Rueckmeldung nach erstem /status-Bericht), 5 Objekte:
--- August-Bier (Besichtigung nach Finanzierungsbestaetigung), Mechenstr (nochmal nachfragen),
--- Von-Weichs 20 (Verkaeufer nicht unter 100k), Magdalenenstr 52 (Vollpreis-Zusage/131k-Angebot),
--- Bonner Talweg 235 (Goertz antwortet nicht).
+-- Pipeline-Updates 28.08.2026 (Nutzer-Rueckmeldung nach erstem /status-Bericht), 4 Objekte.
+-- Ersetzt die nie angewendete 0084_pipeline_updates_28_08 (Versionskollision mit Parallel-Session).
+-- August-Bier entfaellt hier: bereits durch 0084_update_search_property_kessenich_august_bier abgedeckt
+-- (Zwischennachricht an Fr. Rechin, Banktermin fixiert).
 
--- 1) August-Bier-Str. 4
-update public.search_properties set data = data || jsonb_build_object(
-  'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-  'history', coalesce(data->'history','[]'::jsonb) || jsonb_build_array(jsonb_build_object(
-    'id','d1a5f3c8-92e4-4b76-a058-3c7e91f2d640',
-    'ts', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-    'text','Stand geklaert: An Fr. Rechin geschrieben - Besichtigung, sobald die Finanzierungsbestaetigung vorliegt. Blocker ist also die eigene Bank, nicht die Maklerin. Montag 31.08.: Status Finanzierungsbestaetigung pruefen, dann Nachweis senden + Termin machen.')),
-  'notizen', (data->>'notizen') || E'\n\n' || 'UPDATE 28.08.2026: Fr. Rechin wurde geschrieben, dass die Besichtigung stattfindet, sobald die Finanzierungsbestaetigung vorliegt - der Ball liegt bei der eigenen Bank, nicht bei der Maklerin. Naechster Schritt (Wiedervorlage 31.08.): Stand der Finanzierungsbestaetigung klaeren, dann sofort Nachweis senden + Besichtigungstermin vereinbaren (Aktion endet 31.12.2026, Abverkauf laeuft).'
-), updated_at = now()
-where data->>'link' = 'https://www.immowelt.de/expose/cdb436a2-a416-4812-9672-e5087a70cf70';
-
--- 2) Mechenstr. 55-57 (WE 86)
+-- 1) Mechenstr. 55-57 (WE 86): nochmal nachfragen als offener Punkt
 update public.search_properties set data = data || jsonb_build_object(
   'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'wiedervorlage', '2026-08-31',
@@ -26,30 +15,30 @@ update public.search_properties set data = data || jsonb_build_object(
 ), updated_at = now()
 where data->>'link' = 'https://www.immowelt.de/expose/e2dc5795-440a-4a15-a06c-2df2770a77eb';
 
--- 3) Von-Weichs-Str. 20
+-- 2) Von-Weichs-Str. 20: Verkaeufer-Untergrenze 100k -> ruhen lassen
 update public.search_properties set data = data || jsonb_build_object(
   'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'history', coalesce(data->'history','[]'::jsonb) || jsonb_build_array(jsonb_build_object(
     'id','f4c81e26-7a93-4d05-8b1f-62d90c3a7e54',
     'ts', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-    'text','Verkaeufer will nicht unter 100.000 gehen - liegt weiter deutlich ueber unserer Schwelle (~90 T Wecker, Ziel ~76 T). Ruhen lassen, Urteil Finger weg bestaetigt.')),
-  'notizen', (data->>'notizen') || E'\n\n' || 'UPDATE 28.08.2026: Verkaeufer signalisiert Untergrenze 100.000 EUR - das liegt weiter klar ueber unserer Schwelle (Wecker ~90 T, Ziel ~76 T). Objekt ruhen lassen; kein weiterer eigener Zug. Reaktivieren nur, falls der Preis Richtung 90 T faellt.'
+    'text','Verkaeufer will nicht unter 100.000 gehen - weiter deutlich ueber unserer Schwelle (~90 T Wecker, Ziel ~76 T). Ruhen lassen, Urteil Finger weg bestaetigt.')),
+  'notizen', (data->>'notizen') || E'\n\n' || 'UPDATE 28.08.2026: Verkaeufer signalisiert Untergrenze 100.000 EUR - liegt weiter klar ueber unserer Schwelle (Wecker ~90 T, Ziel ~76 T). Objekt ruhen lassen; kein weiterer eigener Zug. Reaktivieren nur, falls der Preis Richtung 90 T faellt.'
 ), updated_at = now()
 where data->>'link' = 'https://www.kleinanzeigen.de/s-anzeige/studentenwohnung-1-zi-apartment-eigentumswohnug-bonn-end-/3424883857-196-23694';
 
--- 4) Magdalenenstr. 52
+-- 3) Magdalenenstr. 52: Vollpreis-Zusage bzw. 131k-Angebot -> aus dem Rennen
 update public.search_properties set data = data || jsonb_build_object(
   'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'wiedervorlage', '',
   'history', coalesce(data->'history','[]'::jsonb) || jsonb_build_array(jsonb_build_object(
     'id','a2d70f95-4e38-4c61-9b27-85c1f4e0d329',
     'ts', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-    'text','Makler v. Briskorn: Es liegt bereits eine Zusage zum vollen Preis (139 T) bzw. alternativ ein Angebot ueber 131 T vor. Bei unserem Rahmen (~110 T) chancenlos - aus dem Rennen; nur reaktivieren, falls die Zusage platzt.')),
-  'notizen', (data->>'notizen') || E'\n\n' || 'UPDATE 28.08.2026 (Debrief-Rest zur Besichtigung 22.08.): Makler v. Briskorn nennt eine bereits vorliegende Zusage zum VOLLEN PREIS (139.000) bzw. alternativ ein Angebot ueber 131.000. Bei unserem Rahmen um 110.000 ist das Objekt damit chancenlos - AUS DEM RENNEN, kein Gebot. Beobachten ohne Wiedervorlage; nur reaktivieren, falls die Zusage platzt und der Makler sich meldet. (Uebliche Vorsicht: solche "Zusagen" sind auch ein bekanntes Druckmittel - aber gegen 131+ bieten wir ohnehin nicht.)'
+    'text','Makler v. Briskorn: Es liegt bereits eine Zusage zum vollen Preis (139 T) bzw. alternativ ein Angebot ueber 131 T vor. Bei unserem Rahmen (~90 T) chancenlos - aus dem Rennen; nur reaktivieren, falls die Zusage platzt.')),
+  'notizen', (data->>'notizen') || E'\n\n' || 'UPDATE 28.08.2026: Makler v. Briskorn nennt eine bereits vorliegende Zusage zum VOLLEN PREIS (139.000) bzw. alternativ ein Angebot ueber 131.000. Bei unserem Rahmen um 90.000 ist das Objekt damit chancenlos - AUS DEM RENNEN, kein Gebot. Beobachten ohne Wiedervorlage; nur reaktivieren, falls die Zusage platzt und der Makler sich meldet. (Uebliche Vorsicht: solche "Zusagen" sind auch ein bekanntes Druckmittel - aber gegen 131+ bieten wir ohnehin nicht.)'
 ), updated_at = now()
 where data->>'link' = 'https://www.immobilienscout24.de/expose/166643036';
 
--- 5) Bonner Talweg 235
+-- 4) Bonner Talweg 235: Goertz antwortet nicht -> passiv, Wiedervorlage 25.09.
 update public.search_properties set data = data || jsonb_build_object(
   'updated_at', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'wiedervorlage', '2026-09-25',

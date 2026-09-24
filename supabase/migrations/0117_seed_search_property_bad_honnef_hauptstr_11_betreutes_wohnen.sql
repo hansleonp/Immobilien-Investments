@@ -1,0 +1,21 @@
+-- Daten-Seed: IS24-Exposé 164253150 (Bad Honnef, Hauptstrasse 11, 53604, Rhein-Sieg-Kreis,
+-- 2-Zi-Etagenwohnung 48,11 m2, 2. von 5 OG, Bj. 1995, Aufzug, Keller, barrierefreies Bad).
+-- BETREUTES WOHNEN FUER SENIOREN (Wohnpark mit 53 seniorengerechten Wohnungen, Johanniter-
+-- Servicebuero; Betreuungsleistungen laut Inserat IN DER KALTMIETE ENTHALTEN).
+-- Kaufpreis 148.500 EUR, Provision 3,57 %. Vermietet an eine Person, 540 EUR kalt/M.
+-- Hausgeld 412 EUR/M (8,56 EUR/m2, Split unbekannt). Gas-Zentralheizung, Verbrauchsausweis 122,97.
+-- Anbieter = WEG-Verwalter: Hausverwaltung Klein GmbH & Co. KG, Jan Mordmueller, Rheinbreitbach.
+-- Veroeffentlicht 24.06.2026 (IS24-Statistikblock). Erstbewertung 24.09.2026.
+-- Idempotent: Insert nur, falls weder id noch Link existieren.
+
+insert into public.search_properties (id, user_id, data, updated_at)
+select
+  'c0a0a943-ddaa-43d1-ba42-535cb355d9e6',
+  coalesce(
+    (select user_id from public.search_properties order by updated_at desc limit 1),
+    (select id from auth.users order by created_at limit 1)
+  ),
+  '{"id": "c0a0a943-ddaa-43d1-ba42-535cb355d9e6", "created_at": "2026-09-24T12:00:00.000Z", "updated_at": "2026-09-24T12:00:00.000Z", "fav": false, "neu": true, "status": ["Neu"], "quelle": "ImmoScout24", "link": "https://www.immobilienscout24.de/expose/164253150", "titel": "2-Zi-Whg 48 qm mit Erker, Betreutes Wohnen fuer Senioren, vermietet, Bad Honnef Hauptstr. 11, Bj. 1995", "ort": "Bad Honnef (53604)", "adresse": "Hauptstraße 11, 53604 Bad Honnef", "lat": null, "lng": null, "zimmer": 2, "wohnflaeche": 48.11, "baujahr": 1995, "preis": 148500, "miete": 540, "roiSoll": null, "marktwert": null, "cashflow": -65, "nichtUmlagefaehig": 210, "wunschpreis": 87000, "wunschmiete": 540, "datum": "2026-06-24", "notizen": "Analyse 24.09.2026: FINGER WEG. Zielpreis (6 % EK-Rendite) 104.000 EUR mit Standard-Eigentuemerlast 150 EUR, konservativ (210 EUR inkl. vermuteter Betreuungspauschale) 87.000 EUR = 30-41 % unter Angebot. Faktor 22,9 zum Angebot. Cashflow App-Logik -65 EUR/M, Liquiditaet -215 EUR/M (Standard) bzw. -275 EUR/M (konservativ = Liquiditaetsschranke gerissen). EK-Rendite zum Angebot 2,4 % / konservativ 1,1 %; ohne Wertsteigerung negativ (-1,8 / -3,3 %).\nDEALBREAKER: (1) Betreutes Wohnen: Betreuungsleistungen der Johanniter sind laut Inserat IN DER KALTMIETE enthalten - die 540 EUR (11,22 EUR/m2) sind also keine reine Wohnungsmiete; der Betreuungsanteil fliesst vermutlich ueber das Hausgeld an die Johanniter. Hausgeld 412 EUR = 8,56 EUR/m2 liegt klar ueber der Plausibilitaet fuer Zentralheizung + Aufzug (5,5-7) - Indiz dafuer. (2) Mieterkreis faktisch auf Senioren beschraenkt (Zweckbestimmung pruefen): Einpersonen-Mieter hohen Alters = Fluktuation durch Pflegeheim/Tod, Neuvermietung nur an Senioren, Leerstandsphasen mit vollem Hausgeld. (3) Exit-Liquiditaet schwach: Kaeuferkreis nur Anleger/Selbstnutzer-Senioren, Banken bewerten Betreutes Wohnen teils mit Abschlag. (4) Gegenprobe ohne Kredit 2,4-2,8 % = unter 3 %.\nPLUS (rechnerisch klein): Bj. 1995, Aufzug, barrierefrei, Zentrumslage nahe Stadtpark/Fussgaengerzone, Bad Honnef ohne Mieterschutzverordnung (Kappung 20 %).\nMIETANSATZ: Ist-Miete 540 EUR laut Inserat; Mietvertragstyp unbekannt (runde Zahl, kein Index-Indiz, aber klaeren). Markt Bad Honnef ~10-12 EUR/m2 Angebotsmieten -> nach Abzug Betreuungsanteil kein Mietpotenzial.\nSTANDZEIT: online seit 24.06.2026 = 92 Tage, Portal sagt Sehr guter Preis (3.087 EUR/m2) - der Markt hat die Kostenstruktur offenbar schon eingepreist.\nANBIETER: Hausverwaltung Klein GmbH & Co. KG (zugleich WEG-Verwalter der Anlage, ihrverwalter.de), Ansprechpartner Jan Mordmueller, Rheinbreitbach. Maklervertrag vor Besichtigung verlangt.\nMAIL: Erstkontakt-Entwurf nur zur Datenbeschaffung erstellt, NICHT versendet (Hausgeld-Split inkl. Betreuungspauschale, Mietvertrag, Teilungserklaerung/Zweckbindung).", "ansprechpartner": "Jan Mordmüller (Hausverwaltung Klein GmbH & Co. KG)", "telefon": "", "email": "", "wiedervorlage": "", "history": [], "docs": []}'::jsonb,
+  now()
+where not exists (select 1 from public.search_properties where id = 'c0a0a943-ddaa-43d1-ba42-535cb355d9e6')
+  and not exists (select 1 from public.search_properties where data->>'link' = 'https://www.immobilienscout24.de/expose/164253150');

@@ -1,0 +1,17 @@
+-- Daten-Seed: Regionalimmobilien24-Exposé 305592502 (Nüsser-Immobilien, Königswinter, Ref. 859-02).
+-- Niederkassel-Lülsdorf (53859), 3 Zi, 73 m2, 6. OG von 8 Geschossen, Bj. 1968, vermietet (600 oder 900 EUR).
+-- Kaufpreis 129.000 EUR + 5,95 % Käuferprovision, Hausgeld 620 EUR. Einstelldatum unbekannt.
+-- Eine von drei Nüsser-Einheiten in der Anlage (Paket möglich). Erstbewertung 24.09.2026.
+-- Idempotent: Insert nur, falls weder id noch Link existieren.
+
+insert into public.search_properties (id, user_id, data, updated_at)
+select
+  '283420ef-2fad-4746-a542-bf7d83149bda',
+  coalesce(
+    (select user_id from public.search_properties order by updated_at desc limit 1),
+    (select id from auth.users order by created_at limit 1)
+  ),
+  '{"id": "283420ef-2fad-4746-a542-bf7d83149bda", "created_at": "2026-09-24T12:00:00.000Z", "updated_at": "2026-09-24T12:00:00.000Z", "fav": false, "neu": true, "status": ["Neu"], "quelle": "Regionalimmobilien24", "link": "https://www.regionalimmobilien24.de/immobilien/expose/305592502", "titel": "3-Zi-ETW 73 qm, 6. OG, 2 Balkone, Aufzug, Stellplatz, vermietet (600 oder 900 EUR?), Bj. 1968 (Nüsser, Ref. 859-02)", "ort": "Niederkassel-Lülsdorf (53859)", "adresse": "Dresdener Straße 2/2a, 53859 Niederkassel (Anlage, Hausnr. unbestätigt)", "lat": null, "lng": null, "zimmer": 3, "wohnflaeche": 73, "baujahr": 1968, "preis": 129000, "miete": 600, "roiSoll": null, "marktwert": null, "cashflow": 75, "nichtUmlagefaehig": 160, "wunschpreis": 95000, "wunschmiete": 600, "datum": "", "notizen": "Analyse 24.09.2026: **Beobachten** – zum Angebot 129.000 EUR + 5,95 % Provision nur 3,5 % EK-Rendite (Stress 0 %: −0,2 %). Ziel 95.000 EUR, Decke 100.000 EUR (6-%-Preis 103.600 bei 600 EUR Miete, Last 160 EUR/M, KNK 14,45 %). Faktor 17,9 Angebot / 13,2 Ziel. Cashflow App-Logik +75 EUR/M, Liquidität konservativ −85 EUR/M.\nMiete widersprüchlich: Inserat \"900 EUR + NK\", im selben Text Kaltmieten der 3 Nüsser-Einheiten 600/500/900 (Reihenfolge 6.OG/EG/1.OG) -> konservativ 600 EUR (8,22 EUR/qm); 900 EUR (12,3 EUR/qm) wäre im Haus unplausibel und läge vermutlich über dem Mietpreisbremsen-Deckel. Mit 900 EUR wären es 10,5 %.\nWEG: Nüsser verkauft 3 Einheiten (6.OG, EG, 1.OG, je 73 qm), Paket möglich (Preis auf Anfrage), Mietkauf angeboten. Sanierung ~550 T EUR: 200 T aus Rücklage, Rest WEG-Kredit; Hausgeld 620 EUR bleibt, Sonderzahlung 11.500 EUR würde es senken. Dach 2021 saniert (SU bezahlt), Heizung 2020 Öl->Gas. Klasse F (198 kWh, Verbrauchsausweis bis 2034). Innenfotos zeigen eine 2022 für 169.000 EUR verkaufte andere Wohnung – Zustand dieser Einheit unbekannt; Portal-Felder (vollsaniert/gehoben/möbliert) Pflichtfeld-Müll.\nRisiken wie Schwester-Einheiten: Chemiepark Lülsdorf ~250 m, kein Schienenanschluss, Überangebot in der Anlage, Rücklage nach Entnahme dünn. Datum: Einstelldatum nicht ermittelbar.\nKontakt: Nüsser-Immobilien, Siegburger Str. 65, 53639 Königswinter, 02244 8875406. Mail entworfen, nicht versendet.", "ansprechpartner": "Nüsser-Immobilien- u. Sachverständigenbüro, Königswinter", "telefon": "02244 8875406", "email": "", "wiedervorlage": "", "history": [], "docs": []}'::jsonb,
+  now()
+where not exists (select 1 from public.search_properties where id = '283420ef-2fad-4746-a542-bf7d83149bda')
+  and not exists (select 1 from public.search_properties where data->>'link' = 'https://www.regionalimmobilien24.de/immobilien/expose/305592502');

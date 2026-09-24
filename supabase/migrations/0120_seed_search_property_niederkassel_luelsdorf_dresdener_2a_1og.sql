@@ -1,0 +1,18 @@
+-- Daten-Seed: IS24-Exposé 165427943 = Kleinanzeigen 3454192592 (Dublette, gleiche Einheit).
+-- Dresdener Straße 2a, 53859 Niederkassel-Lülsdorf, 3 Zi, 73 m2, 1. OG, Bj. 1968, vermietet 597 EUR kalt.
+-- Kaufpreis 122.000 EUR (vorher 133.000), privat/provisionsfrei, Hausgeld 660,09 EUR (~500 uml.).
+-- Anbieter privat: Adriano Alves Lattanzi. Kleinanzeigen seit 29.08.2026, IS24 seit 15.09.2026.
+-- Erstbewertung 24.09.2026.
+-- Idempotent: Insert nur, falls weder id noch Link existieren.
+
+insert into public.search_properties (id, user_id, data, updated_at)
+select
+  '96d6a20e-c44e-427e-a5a2-a24d3458d8c4',
+  coalesce(
+    (select user_id from public.search_properties order by updated_at desc limit 1),
+    (select id from auth.users order by created_at limit 1)
+  ),
+  '{"id": "96d6a20e-c44e-427e-a5a2-a24d3458d8c4", "created_at": "2026-09-24T12:00:00.000Z", "updated_at": "2026-09-24T12:00:00.000Z", "fav": false, "neu": true, "status": ["Neu"], "quelle": "ImmoScout24", "link": "https://www.immobilienscout24.de/expose/165427943", "titel": "3-Zi-ETW 73 qm, 1. OG, 2 Loggien, Aufzug, Stellplatz, vermietet 597 EUR, privat/provisionsfrei, Bj. 1968", "ort": "Niederkassel-Lülsdorf (53859)", "adresse": "Dresdener Straße 2a, 53859 Niederkassel", "lat": null, "lng": null, "zimmer": 3, "wohnflaeche": 73, "baujahr": 1968, "preis": 122000, "miete": 597, "roiSoll": null, "marktwert": null, "cashflow": 100, "nichtUmlagefaehig": 160, "wunschpreis": 110000, "wunschmiete": 597, "datum": "2026-08-29", "notizen": "Analyse 24.09.2026: **Kaufen wenn Preis passt** – Gebot/Ziel 110.000 EUR, Decke 121.000 EUR (= 6-%-EK-Rendite-Preis bei belegter Eigentümerlast 160 EUR/M; mit Verkäuferangabe 71 EUR/M ab 01/27 läge er bei 147.000). Faktor 17,0 zum Angebot, 15,4 am Ziel. Cashflow App-Logik +100 EUR/M, Liquidität konservativ −60 EUR/M (Angebot) bzw. −11 EUR/M (110k). EK-Rendite 5,9 % Angebot / 7,2 % am Ziel; Stress 0 % Wertsteigerung 2,2 % / 3,7 %.\nDubletten: identisch mit Kleinanzeigen 3454192592 (dort 29.08.2026 eingestellt, Preis von 133.000 auf 122.000 gesenkt; IS24 seit 15.09.2026).\nWEG: Hochhaus-artiger 8-Geschosser Bj. 1968, Klasse F (198,6 kWh Verbrauch), Gas-ZH 2019. Hausgeld 660 EUR = 9,04 EUR/qm (!), davon ~500 uml. -> Warmmiete 1.097 EUR = 15 EUR/qm warm, begrenzt jede Mieterhöhung. Rücklagenzuführung nur 44 EUR/M (0,60 EUR/qm = unterfinanziert). Strangsanierung ~550–600 T EUR 2026: 200 T aus Rücklage, Rest WEG-Kredit; Anteil dieser Einheit ~11.500 EUR hat Verkäufer bezahlt (Beleg fehlt) -> n. uml. Anteil soll ab 01.01.27 um 89 EUR/M sinken.\nRisiken: mind. 5 Einheiten derselben Anlage gleichzeitig am Markt (Nüsser 3x, RRE, dieser) = schwache Exit-Liquidität, Vorverkauf 2022 lt. Nüsser 169k -> Preisniveau −25 %. Evonik/Chemiepark Lülsdorf (Störfallbetrieb) ~250 m südlich. Kein Schienenanschluss (IS24-KI-Text \"S13\" falsch). Miete erst zum 01.08.2026 erhöht -> Vertragstyp/Historie klären, § 558-Pfad evtl. 3 J. gesperrt; Niederkassel in MietSchVO (15 % Kappung).\nMietansatz: Ist-Miete 597 EUR (8,17 EUR/qm), Markt für Bj. 60er ~9–10 EUR/qm real, Portal-Ø 11–13.\nKontakt: privat, Adriano Alves Lattanzi, nur Portal-Nachricht (keine Makleranfragen). Mail entworfen, nicht versendet.", "ansprechpartner": "Adriano Alves Lattanzi (privat)", "telefon": "", "email": "", "wiedervorlage": "", "history": [], "docs": []}'::jsonb,
+  now()
+where not exists (select 1 from public.search_properties where id = '96d6a20e-c44e-427e-a5a2-a24d3458d8c4')
+  and not exists (select 1 from public.search_properties where data->>'link' = 'https://www.immobilienscout24.de/expose/165427943');
